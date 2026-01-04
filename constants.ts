@@ -110,12 +110,15 @@ const createDefaultContent = (idPrefix: string) => ({
 
 const createChapters = (grade: string, sem: string): Chapter[] => {
   const titles = PAI_CURRICULUM[grade][sem] || [];
+  // Jika genap, mulai dari bab 6 (offset 5)
+  const offset = sem === 'genap' ? 5 : 0;
+  
   return titles.map((title: string, i: number) => ({
-    id: `${grade}-${sem}-${i + 1}`,
-    title: `Bab ${i + 1}: ${title}`,
+    id: `${grade}-${sem}-${offset + i + 1}`,
+    title: `Bab ${offset + i + 1}: ${title}`,
     description: `Pembahasan materi PAI Kelas ${grade} tentang ${title}.`,
     progress: 0,
-    ...createDefaultContent(`${grade}-${sem}-${i + 1}`)
+    ...createDefaultContent(`${grade}-${sem}-${offset + i + 1}`)
   }));
 };
 

@@ -528,17 +528,29 @@ const ClassDetailView: React.FC<{
             <button key={sem} onClick={() => setActiveSem(sem as any)} className={`px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeSem === sem ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>Semester {sem === 'ganjil' ? 'Ganjil' : 'Genap'}</button>
          ))}
       </div>
+      
       {classData.schedule && (
-         <Card className="mb-8 border-l-4 border-l-blue-500 bg-blue-50/50">
+         <Card className="mb-6 border-l-4 border-l-blue-500 bg-blue-50/50">
             <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2"><CalendarRange size={18}/> Jadwal Pelajaran {classData.name}</h3>
             {classData.schedule.type === 'html' ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: classData.schedule.content || '' }} /> : <a href={classData.schedule.url} target="_blank" className="text-blue-600 hover:underline">Lihat Jadwal</a>}
          </Card>
       )}
+
+      {gradeResource && (
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100 mb-8">
+            <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-3 text-xl border-b border-green-200/50 pb-4">
+               <div className="p-2 bg-green-100 rounded-lg text-green-600"><GraduationCap size={24}/></div>
+               Rekapitulasi Nilai Semester {activeSem === 'ganjil' ? 'Ganjil' : 'Genap'}
+            </h3>
+            {gradeResource.type === 'html' ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: gradeResource.content || '' }} /> : <a href={gradeResource.url} target="_blank" className="text-green-600 hover:underline flex items-center gap-2 font-semibold"><ExternalLink size={16}/> Buka Data Rekap Nilai</a>}
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
          {currentSemester?.chapters.map((chapter) => (
             <Card key={chapter.id} onClick={() => onSelectChapter(chapter.id)} className="h-full flex flex-col cursor-pointer group hover:border-blue-300">
                <div className="flex justify-between items-start mb-4">
-                  <span className={`px-3 py-1 bg-${classData.color}-50 text-${classData.color}-700 text-[10px] font-extrabold rounded-full uppercase tracking-widest`}>BAB {chapter.id.split('-')[2] || chapter.id.split('-').pop()}</span>
+                  <span className={`px-3 py-1 bg-${classData.color}-50 text-${classData.color}-700 text-[10px] font-extrabold rounded-full uppercase tracking-widest`}>BAB {chapter.title.split(':')[0].replace('Bab ', '')}</span>
                   {chapter.progress === 100 && <CheckCircle size={20} className="text-green-500"/>}
                </div>
                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">{chapter.title.includes(': ') ? chapter.title.split(': ').slice(1).join(': ') : chapter.title}</h3>
@@ -550,15 +562,7 @@ const ClassDetailView: React.FC<{
             </Card>
          ))}
       </div>
-      {gradeResource && (
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100 mb-6">
-            <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-3 text-xl border-b border-green-200/50 pb-4">
-               <div className="p-2 bg-green-100 rounded-lg text-green-600"><GraduationCap size={24}/></div>
-               Rekapitulasi Nilai Semester {activeSem === 'ganjil' ? 'Ganjil' : 'Genap'}
-            </h3>
-            {gradeResource.type === 'html' ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: gradeResource.content || '' }} /> : <a href={gradeResource.url} target="_blank" className="text-green-600 hover:underline flex items-center gap-2"><ExternalLink size={16}/> Lihat Rekap Nilai</a>}
-        </Card>
-      )}
+      
       <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
         <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-3 text-xl border-b border-green-200/50 pb-4"><div className="p-2 bg-blue-100 rounded-lg text-blue-600"><FileQuestion size={24}/></div>Bank Soal (STS & SAS)</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1118,132 +1122,107 @@ const AdminDashboardView: React.FC<{
                                           <Button onClick={handleResourceSave} className="py-2 px-6 rounded-xl shadow-none text-sm"><Save size={16}/> Simpan</Button>
                                       </div>
                                       <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-xl border border-gray-200">
-                                          <button onClick={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${resourceEdit.item.type === 'link' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                                              <LinkIcon size={14}/> Tautan URL
+                                          <button onClick={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${resourceEdit.item.type === 'link' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                              <LinkIcon size={14}/> Tautan
                                           </button>
-                                          <button onClick={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${resourceEdit.item.type === 'html' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
-                                              <Code size={14}/> Kode HTML
+                                          <button onClick={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${resourceEdit.item.type === 'html' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                              <Code size={14}/> HTML
                                           </button>
                                       </div>
-                                      {resourceEdit.item.type === 'link' ? (
-                                          <Input label="Link Dokumen / Spreadsheet" placeholder="https://docs.google.com/..." value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} className="rounded-xl bg-white shadow-sm border-gray-100"/>
-                                      ) : (
-                                          <TextArea label="Input Tabel / Embed HTML" placeholder="<table class='...'>...</table>" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="h-64 font-mono text-xs rounded-xl bg-white shadow-sm border-gray-100"/>
-                                      )}
-                                      <div className="mt-4 p-4 bg-amber-50 rounded-2xl text-amber-700 text-[11px] leading-relaxed border border-amber-100 flex gap-3">
-                                         <Sparkles size={16} className="flex-shrink-0"/>
-                                         <span>Gunakan <b>Tautan URL</b> untuk dokumen eksternal, gunakan <b>HTML</b> jika ingin menampilkan konten langsung di halaman siswa.</span>
+                                      <div className="space-y-4">
+                                          <Input label="Judul" value={resourceEdit.item.title} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, title: e.target.value}})} className="mb-0"/>
+                                          {resourceEdit.item.type === 'link' ? 
+                                              <Input label="URL" value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} placeholder="https://..." className="mb-0"/> : 
+                                              <TextArea label="HTML Content" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="font-mono text-xs h-40"/>
+                                          }
                                       </div>
                                   </div>
-                              ) : <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center italic space-y-4">
-                                    <div className="p-5 bg-white rounded-full shadow-sm"><Edit3 size={40} className="opacity-10"/></div>
-                                    <p className="text-sm font-medium">Pilih data di sebelah kiri<br/>untuk memulai pengaturan.</p>
-                                  </div>}
+                              ) : (
+                                  <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4 min-h-[300px]">
+                                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center"><Edit3 size={32}/></div>
+                                      <p className="text-center text-sm max-w-xs">Pilih salah satu item di menu sebelah kiri untuk mulai mengedit.</p>
+                                  </div>
+                              )}
                           </div>
                       </div>
                   </Card>
                )}
-
+               
                {tab === 'content' && (
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Card className="lg:col-span-1 h-fit">
-                       <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><GraduationCap size={18} className="text-blue-500"/> Tingkatan Materi</h3>
-                       <div className="space-y-4">
-                          <div className="flex flex-col gap-2">
-                             {[{id: '7', label: 'Kelas VII'},{id: '8', label: 'Kelas VIII'},{id: '9', label: 'Kelas IX'}].map(g => (
-                               <button key={g.id} onClick={() => setSelGrade(g.id)} className={`w-full p-4 text-left rounded-2xl border-2 transition-all font-bold ${selGrade === g.id ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-50 bg-white text-gray-400 hover:border-gray-200'}`}>{g.label}</button>
-                             ))}
+                  <Card>
+                      <SectionTitle title="Manajemen Materi" subtitle="Edit konten per bab untuk setiap jenjang kelas." />
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                          <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Jenjang</label>
+                              <select className="w-full p-3 rounded-xl border border-gray-200 bg-white font-semibold" value={selGrade} onChange={e => setSelGrade(e.target.value)}>
+                                  <option value="7">Kelas 7</option>
+                                  <option value="8">Kelas 8</option>
+                                  <option value="9">Kelas 9</option>
+                              </select>
                           </div>
-                          <select className="w-full p-3 border border-gray-200 rounded-2xl bg-white text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500" value={selSemId} onChange={e => setSelSemId(e.target.value)}><option value="ganjil">Semester Ganjil</option><option value="genap">Semester Genap</option></select>
-                          
-                          <div className="pt-4 border-t border-gray-100">
-                              <div className="flex justify-between items-center px-1 mb-2"><div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Bank Soal Terintegrasi</div><button onClick={() => setResourceEdit({ type: 'exam', item: { id: Date.now().toString(), title: 'Soal Baru', type: 'link', url: '' } })} className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg font-bold shadow-sm">+ Tambah</button></div>
-                              <div className="space-y-1">
-                                {currentSemester?.exams?.map(exam => (<div key={exam.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-xl text-sm group transition-colors"><span className="truncate text-gray-600 font-medium">{exam.title}</span><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setResourceEdit({ type: 'exam', item: exam })} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg"><Edit3 size={12}/></button><button onClick={() => { if(confirm('Hapus soal ini?')) onUpdateClassResourceByGrade(selGrade, 'exam', { id: 'DUMMY', title: 'REFRESH', type: 'html' }, selSemId); }} className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={12}/></button></div></div>))}
-                              </div>
+                          <div>
+                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Semester</label>
+                              <select className="w-full p-3 rounded-xl border border-gray-200 bg-white font-semibold" value={selSemId} onChange={e => setSelSemId(e.target.value)}>
+                                  <option value="ganjil">Ganjil</option>
+                                  <option value="genap">Genap</option>
+                              </select>
                           </div>
-
-                          <div className="pt-4 border-t border-gray-100 max-h-[300px] overflow-y-auto pr-1">
-                             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Daftar Materi Bab</div>
-                             <div className="space-y-1">
-                                {currentSemester?.chapters.map(chap => (<div key={chap.id} onClick={() => { setSelChapId(chap.id); setResourceEdit(null); }} className={`p-3 rounded-xl cursor-pointer text-sm transition-all ${selChapId === chap.id && !resourceEdit ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/20' : 'hover:bg-gray-100 text-gray-600 font-medium'}`}>{chap.title}</div>))}
-                             </div>
+                          <div className="md:col-span-2">
+                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih Bab</label>
+                              <select className="w-full p-3 rounded-xl border border-gray-200 bg-white font-semibold" value={selChapId} onChange={e => setSelChapId(e.target.value)}>
+                                  {currentSemester?.chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
+                              </select>
                           </div>
-                       </div>
-                    </Card>
-                    <Card className="lg:col-span-2">
-                       {resourceEdit && resourceEdit.type === 'exam' ? (
-                          <div className="animate-fade-in-up">
-                              <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4"><h2 className="text-xl font-bold">Edit Soal Evaluasi</h2><div className="flex gap-2"><Button variant="secondary" onClick={() => setResourceEdit(null)} className="py-2 px-4 text-xs rounded-xl">Batal</Button><Button onClick={handleResourceSave} className="py-2 px-4 text-xs rounded-xl"><Save size={14}/> Simpan Ke Semua Kelas</Button></div></div>
-                              <div className="space-y-4">
-                                  <Input label="Judul Soal" value={resourceEdit.item.title} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, title: e.target.value}})} className="rounded-xl"/>
-                                  <div className="flex gap-4"><label className="flex items-center gap-2 cursor-pointer font-bold text-xs"><input type="radio" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/>HTML</label><label className="flex items-center gap-2 cursor-pointer font-bold text-xs"><input type="radio" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/>URL Link</label></div>
-                                  {resourceEdit.item.type === 'html' ? <TextArea label="Konten HTML / Embed" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="rounded-xl font-mono text-xs"/> : <Input label="URL Google Form / Quizizz" value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} className="rounded-xl"/>}
-                              </div>
-                          </div>
-                       ) : chapForm ? (
-                          <div className="relative animate-fade-in-up">
-                             <div className="absolute -top-1 right-0 bg-blue-600 text-white text-[9px] font-extrabold px-2 py-1 rounded-full shadow-lg">SYNC MODE</div>
-                             <AdminContentEditor chapter={chapForm} onSave={handleChapterUpdate} />
-                          </div>
-                       ) : <div className="flex flex-col items-center justify-center h-[400px] text-gray-300 space-y-4"><div className="p-6 bg-gray-50 rounded-full"><BookOpen size={48} className="opacity-10"/></div><p className="text-sm font-medium">Pilih bab materi untuk mulai mengedit konten.</p></div>}
-                    </Card>
-                 </div>
+                      </div>
+                      <div className="border-t pt-6">
+                          {chapForm ? <AdminContentEditor chapter={chapForm} onSave={handleChapterUpdate} /> : <p className="text-center py-10 text-gray-400">Loading materi...</p>}
+                      </div>
+                  </Card>
                )}
 
                {tab === 'extras' && (
-                 <Card>
-                   <SectionTitle title="Pojok Literasi Digital" subtitle="Kelola konten tambahan seperti kumpulan doa, kisah islami, dan materi ibadah." />
-                   <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 mb-10">
-                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">{editingExtraId ? 'Edit Konten Literasi' : 'Tambah Konten Literasi Baru'}</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                         <Input label="Judul Konten" value={extraForm.title || ''} onChange={e => setExtraForm({...extraForm, title: e.target.value})} className="mb-0 rounded-xl bg-white"/>
-                         <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori Literasi</label><select className="w-full p-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500 font-medium" value={extraForm.category} onChange={e => setExtraForm({...extraForm, category: e.target.value as ExtraCategory})}>
-                            {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
-                         </select></div>
+                  <Card>
+                      <SectionTitle title="Pojok Literasi" subtitle="Kelola konten tambahan seperti doa, kisah islami, dll." />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                           <div className="bg-purple-50/50 p-6 rounded-2xl border border-purple-100">
+                              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider"><Plus size={16}/> {editingExtraId ? 'Edit Konten' : 'Tambah Konten Baru'}</h3>
+                              <Input placeholder="Judul Konten" value={extraForm.title || ''} onChange={e => setExtraForm({...extraForm, title: e.target.value})} className="mb-2 rounded-xl bg-white"/>
+                              <div className="grid grid-cols-2 gap-2 mb-2">
+                                  <select className="p-3 rounded-xl border border-gray-200 bg-white text-sm" value={extraForm.category} onChange={e => setExtraForm({...extraForm, category: e.target.value as any})}>
+                                      {categories.map(c => <option key={c} value={c}>{c.toUpperCase()}</option>)}
+                                  </select>
+                                  <select className="p-3 rounded-xl border border-gray-200 bg-white text-sm" value={extraForm.type} onChange={e => setExtraForm({...extraForm, type: e.target.value as any})}>
+                                      <option value="link">Tautan / Video</option>
+                                      <option value="html">Teks / HTML</option>
+                                  </select>
+                              </div>
+                              {extraForm.type === 'link' ? 
+                                  <Input placeholder="URL Link / Youtube" value={extraForm.url || ''} onChange={e => setExtraForm({...extraForm, url: e.target.value})} className="mb-2 rounded-xl bg-white"/> :
+                                  <TextArea placeholder="Isi Konten HTML" value={extraForm.content || ''} onChange={e => setExtraForm({...extraForm, content: e.target.value})} className="mb-2 rounded-xl bg-white h-32 font-mono text-xs"/>
+                              }
+                              <Button onClick={handleExtraSave} className="w-full text-sm py-3 rounded-xl shadow-none bg-purple-600 hover:bg-purple-700 shadow-purple-500/20">{editingExtraId ? 'Simpan Perubahan' : 'Tambahkan Konten'}</Button>
+                              {editingExtraId && <button onClick={() => {setEditingExtraId(null); setExtraForm({ category: 'doa', type: 'link', title: '', url: '', content: '' })}} className="text-xs text-red-500 mt-2 text-center w-full block font-medium">Batal</button>}
+                           </div>
+                           <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
+                               {extras.map(ex => (
+                                   <div key={ex.id} className="p-4 bg-white border border-gray-100 rounded-xl hover:shadow-md transition-all group flex justify-between items-start">
+                                       <div>
+                                           <div className="flex items-center gap-2 mb-1">
+                                               <Badge color="purple">{ex.category}</Badge>
+                                               <span className="text-xs text-gray-400 uppercase font-bold">{ex.type}</span>
+                                           </div>
+                                           <h4 className="font-bold text-gray-800">{ex.title}</h4>
+                                           <p className="text-xs text-gray-400 truncate w-48">{ex.type === 'link' ? ex.url : 'HTML Content'}</p>
+                                       </div>
+                                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                           <button onClick={() => handleExtraEdit(ex)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit3 size={16}/></button>
+                                           <button onClick={() => handleExtraDelete(ex.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                                       </div>
+                                   </div>
+                               ))}
+                           </div>
                       </div>
-                      <div className="flex gap-4 mb-4"><label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-600"><input type="radio" checked={extraForm.type === 'link'} onChange={() => setExtraForm({...extraForm, type: 'link'})}/>Tautan Luar</label><label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-600"><input type="radio" checked={extraForm.type === 'html'} onChange={() => setExtraForm({...extraForm, type: 'html'})}/>Isi HTML</label></div>
-                      {extraForm.type === 'link' ? <Input placeholder="Contoh: https://www.youtube.com/..." value={extraForm.url || ''} onChange={e => setExtraForm({...extraForm, url: e.target.value})} className="rounded-xl bg-white shadow-sm border-gray-100"/> : <TextArea placeholder="Tuliskan teks atau masukkan kode HTML..." value={extraForm.content || ''} onChange={e => setExtraForm({...extraForm, content: e.target.value})} className="rounded-xl bg-white shadow-sm border-gray-100 font-mono text-xs"/>}
-                      <div className="flex gap-2 mt-2"><Button onClick={handleExtraSave} className="px-8 rounded-xl shadow-none">{editingExtraId ? 'Simpan Konten' : 'Tambahkan Konten'}</Button></div>
-                   </div>
-                   
-                   <div className="space-y-8">
-                      {categories.map(cat => {
-                        const items = extras.filter(e => e.category === cat);
-                        if (items.length === 0) return null;
-                        return (
-                          <div key={cat} className="animate-fade-in-up">
-                             <h3 className="font-extrabold text-gray-400 text-[10px] uppercase tracking-[0.2em] mb-4 border-b border-gray-100 pb-3 flex items-center gap-3">
-                                <span className={`p-1.5 rounded-lg bg-gray-100 text-gray-600`}>
-                                  {cat === 'doa' && <BookHeart size={12} />}
-                                  {cat === 'sholat' && <Sun size={12} />}
-                                  {cat === 'cerita' && <Sparkles size={12} />}
-                                  {cat === 'hadist' && <MessageCircle size={12} />}
-                                  {cat === 'fiqih' && <Hand size={12} />}
-                                  {cat === 'ramadhan' && <Coffee size={12} />}
-                                  {cat === 'lainnya' && <MoreHorizontal size={12} />}
-                                </span>
-                                {cat} <span className="text-gray-300 font-normal">({items.length} konten)</span>
-                             </h3>
-                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {items.map(item => (
-                                  <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition-all group">
-                                     <div className="flex items-center gap-3">
-                                        <div className={`w-2 h-2 rounded-full ${item.type === 'link' ? 'bg-blue-400' : 'bg-green-400'}`}></div>
-                                        <span className="font-semibold text-gray-700 text-sm group-hover:text-blue-600 transition-colors">{item.title}</span>
-                                     </div>
-                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button onClick={() => handleExtraEdit(item)} className="text-blue-500 p-2 hover:bg-blue-50 rounded-xl transition-colors"><Edit3 size={14}/></button>
-                                        <button onClick={() => handleExtraDelete(item.id)} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={14}/></button>
-                                     </div>
-                                  </div>
-                                ))}
-                             </div>
-                          </div>
-                        );
-                      })}
-                   </div>
-                 </Card>
+                  </Card>
                )}
              </div>
           </div>
@@ -1252,181 +1231,282 @@ const AdminDashboardView: React.FC<{
   );
 };
 
+// --- APP COMPONENT ---
+
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LANDING);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ExtraCategory>('doa');
-  const [classesData, setClassesData] = useState<ClassData[]>(CLASSES_DATA);
-  const [studentsData, setStudentsData] = useState<Student[]>(DEFAULT_STUDENTS);
-  const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(DEFAULT_SCHOOL_PROFILE);
-  const [extrasData, setExtrasData] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
+  
   const [currentUser, setCurrentUser] = useState<Student | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const seedDatabase = async () => {
-     try {
-        const batch = writeBatch(db);
-        batch.set(doc(db, 'settings', 'schoolProfile'), DEFAULT_SCHOOL_PROFILE);
-        CLASSES_DATA.forEach(cls => { batch.set(doc(db, 'classes', cls.id), cls); });
-        DEFAULT_STUDENTS.slice(0, 10).forEach(s => { batch.set(doc(db, 'students', s.id), s); });
-        DEFAULT_EXTRAS.forEach(ex => { batch.set(doc(db, 'extras', ex.id), ex); });
-        await batch.commit();
-        window.location.reload();
-     } catch (e) { console.error("Error seeding DB:", e); }
-  };
-
+  
+  // Data State
+  const [classes, setClasses] = useState<ClassData[]>(CLASSES_DATA);
+  const [students, setStudents] = useState<Student[]>(DEFAULT_STUDENTS);
+  const [extras, setExtras] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
+  const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(DEFAULT_SCHOOL_PROFILE);
+  
+  // Load data from Firebase on mount
   useEffect(() => {
-     const fetchData = async () => {
-        if (!db) { setIsLoading(false); return; }
-        try {
-            const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
-            if (profileSnap.exists()) {
-              // Merge default profile with stored data to ensure new fields exist
-              setSchoolProfile({
-                ...DEFAULT_SCHOOL_PROFILE,
-                ...profileSnap.data()
-              } as SchoolProfile);
-            }
-            const classesSnap = await getDocs(collection(db, 'classes'));
-            const fetchedClasses: ClassData[] = [];
-            classesSnap.forEach(d => fetchedClasses.push(d.data() as ClassData));
-            const studentsSnap = await getDocs(collection(db, 'students'));
-            const fetchedStudents: Student[] = [];
-            studentsSnap.forEach(d => fetchedStudents.push(d.data() as Student));
-            const extrasSnap = await getDocs(collection(db, 'extras'));
-            const fetchedExtras: ExtraContent[] = [];
-            extrasSnap.forEach(d => fetchedExtras.push(d.data() as ExtraContent));
-            if (fetchedClasses.length === 0) await seedDatabase();
-            else {
-               setClassesData(fetchedClasses);
-               if (fetchedStudents.length > 0) setStudentsData(fetchedStudents);
-               if (fetchedExtras.length > 0) setExtrasData(fetchedExtras);
-            }
-        } catch (e) { console.error("Fetch Error:", e); } finally { setIsLoading(false); }
-     };
-     fetchData();
+    const fetchData = async () => {
+      if (!db) return; // Offline mode uses constants
+
+      try {
+        // 1. Profile
+        const profileSnap = await getDoc(doc(db, 'settings', 'profile'));
+        if (profileSnap.exists()) {
+          setSchoolProfile(profileSnap.data() as SchoolProfile);
+        }
+
+        // 2. Classes
+        const classesSnap = await getDocs(collection(db, 'classes'));
+        if (!classesSnap.empty) {
+          const loadedClasses: ClassData[] = [];
+          classesSnap.forEach(doc => loadedClasses.push(doc.data() as ClassData));
+          // Merge with default to ensure structure
+          setClasses(prev => {
+             const merged = [...prev];
+             loadedClasses.forEach(loaded => {
+                const idx = merged.findIndex(c => c.id === loaded.id);
+                if (idx > -1) merged[idx] = loaded;
+             });
+             return merged;
+          });
+        }
+
+        // 3. Students
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        if (!studentsSnap.empty) {
+          const loadedStudents: Student[] = [];
+          studentsSnap.forEach(doc => loadedStudents.push(doc.data() as Student));
+          setStudents(loadedStudents);
+        }
+
+        // 4. Extras
+        const extrasSnap = await getDocs(collection(db, 'extras'));
+        if (!extrasSnap.empty) {
+            const loadedExtras: ExtraContent[] = [];
+            extrasSnap.forEach(doc => loadedExtras.push(doc.data() as ExtraContent));
+            setExtras(loadedExtras);
+        }
+
+      } catch (error) {
+        console.error("Error fetching data from Firebase:", error);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const handleUpdateProfile = async (newProfile: SchoolProfile) => {
-      setSchoolProfile(newProfile);
-      if(db) await setDoc(doc(db, 'settings', 'schoolProfile'), newProfile);
+  // Sync helpers
+  const syncClass = async (updatedClass: ClassData) => {
+    setClasses(prev => prev.map(c => c.id === updatedClass.id ? updatedClass : c));
+    if (db) await setDoc(doc(db, 'classes', updatedClass.id), updatedClass);
   };
-  const handleUpdateClass = async (updatedClass: ClassData) => {
-      setClassesData(prev => prev.map(c => c.id === updatedClass.id ? updatedClass : c));
-      if(db) await setDoc(doc(db, 'classes', updatedClass.id), updatedClass);
+  
+  const syncProfile = async (updatedProfile: SchoolProfile) => {
+    setSchoolProfile(updatedProfile);
+    if (db) await setDoc(doc(db, 'settings', 'profile'), updatedProfile);
   };
-  const handleUpdateChapterByGrade = async (gradeLevel: string, semId: string, chapId: string, data: Partial<Chapter>) => {
-      const targetClasses = classesData.filter(c => c.gradeLevel === gradeLevel);
-      const newClassesData = classesData.map(cls => {
-          if (cls.gradeLevel !== gradeLevel) return cls;
-          return { ...cls, semesters: cls.semesters.map(sem => {
-              if (sem.id !== semId) return sem;
-              return { ...sem, chapters: sem.chapters.map(chap => {
-                  if (chap.id !== chapId) return chap;
-                  return { ...chap, ...data };
-              }) };
-          }) };
-      });
-      setClassesData(newClassesData);
-      if (db) {
-          const batch = writeBatch(db);
-          targetClasses.forEach(cls => {
-              const updatedCls = newClassesData.find(nc => nc.id === cls.id);
-              if (updatedCls) batch.set(doc(db, 'classes', cls.id), updatedCls);
-          });
-          await batch.commit();
-      }
-  };
-  const handleUpdateClassResourceByGrade = async (gradeLevel: string, resourceType: 'exam' | 'grades' | 'schedule', item: ResourceItem, semesterId?: string) => {
-      const newClassesData = classesData.map(cls => {
-          if (cls.gradeLevel !== gradeLevel) return cls;
-          const updatedCls = { ...cls };
-          if (resourceType === 'schedule') updatedCls.schedule = item;
-          if (resourceType === 'grades' && semesterId) {
-              updatedCls.semesters = updatedCls.semesters.map(sem => sem.id === semesterId ? { ...sem, grades: item } : sem);
-          }
-          if (resourceType === 'exam' && semesterId) {
-              updatedCls.semesters = updatedCls.semesters.map(sem => {
-                  if (sem.id !== semesterId) return sem;
-                  const exams = sem.exams ? [...sem.exams] : [];
-                  const idx = exams.findIndex(e => e.id === item.id);
-                  if (idx > -1) exams[idx] = item;
-                  else exams.push(item);
-                  return { ...sem, exams };
-              });
-          }
-          return updatedCls;
-      });
-      setClassesData(newClassesData);
-      if (db) {
-          const batch = writeBatch(db);
-          classesData.filter(c => c.gradeLevel === gradeLevel).forEach(cls => {
-              const updated = newClassesData.find(nc => nc.id === cls.id);
-              if(updated) batch.set(doc(db, 'classes', cls.id), updated);
-          });
-          await batch.commit();
-      }
-  };
-  const handleSaveStudent = async (student: Student) => {
-      setStudentsData(prev => {
+
+  const syncStudent = async (student: Student) => {
+      setStudents(prev => {
           const exists = prev.find(s => s.id === student.id);
           if (exists) return prev.map(s => s.id === student.id ? student : s);
           return [...prev, student];
       });
-      if(db) await setDoc(doc(db, 'students', student.id), student);
+      if (db) await setDoc(doc(db, 'students', student.id), student);
   };
-  const handleDeleteStudent = async (id: string) => { setStudentsData(prev => prev.filter(s => s.id !== id)); if(db) await deleteDoc(doc(db, 'students', id)); };
-  const handleSaveExtra = async (extra: ExtraContent) => {
-      setExtrasData(prev => {
+
+  const removeStudent = async (id: string) => {
+      setStudents(prev => prev.filter(s => s.id !== id));
+      if (db) await deleteDoc(doc(db, 'students', id));
+  };
+
+  const syncExtra = async (extra: ExtraContent) => {
+      setExtras(prev => {
           const exists = prev.find(e => e.id === extra.id);
           if (exists) return prev.map(e => e.id === extra.id ? extra : e);
           return [...prev, extra];
       });
-      if(db) await setDoc(doc(db, 'extras', extra.id), extra);
+      if (db) await setDoc(doc(db, 'extras', extra.id), extra);
   };
-  const handleDeleteExtra = async (id: string) => { setExtrasData(prev => prev.filter(e => e.id !== id)); if(db) await deleteDoc(doc(db, 'extras', id)); };
-  const navigate = (newView: ViewState, classId?: string | null, chapterId?: string | null) => {
-      setView(newView);
-      if (classId !== undefined) setSelectedClassId(classId);
-      if (chapterId !== undefined) setSelectedChapterId(chapterId);
-      window.scrollTo(0, 0);
+
+  const removeExtra = async (id: string) => {
+      setExtras(prev => prev.filter(e => e.id !== id));
+      if (db) await deleteDoc(doc(db, 'extras', id));
   };
-  const handleLoginSuccess = (student: Student, classId: string) => { setCurrentUser(student); navigate(ViewState.CLASS_DETAIL, classId); };
-  const activeChapter = selectedClassId && selectedChapterId ? classesData.find(c => c.id === selectedClassId)?.semesters.flatMap(s => s.chapters).find(ch => ch.id === selectedChapterId) : null;
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="text-center"><div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div><p className="text-gray-500 font-medium">Memuat Data...</p></div></div>;
+
+  // Handlers
+  const handleChapterUpdate = (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
+      const classToUpdate = classes.find(c => c.gradeLevel === grade);
+      if (!classToUpdate) return;
+      
+      const updatedClass = { ...classToUpdate };
+      const semIndex = updatedClass.semesters.findIndex(s => s.id === semId);
+      if (semIndex === -1) return;
+      
+      const chapIndex = updatedClass.semesters[semIndex].chapters.findIndex(c => c.id === chapId);
+      if (chapIndex === -1) return;
+      
+      updatedClass.semesters[semIndex].chapters[chapIndex] = { ...updatedClass.semesters[semIndex].chapters[chapIndex], ...data };
+      
+      // Update ALL classes with same grade
+      const classesToUpdate = classes.filter(c => c.gradeLevel === grade);
+      classesToUpdate.forEach(c => {
+          const cCopy = JSON.parse(JSON.stringify(c));
+          cCopy.semesters[semIndex].chapters[chapIndex] = updatedClass.semesters[semIndex].chapters[chapIndex];
+          syncClass(cCopy);
+      });
+  };
+
+  const handleClassResourceUpdate = (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semesterId?: string) => {
+      const classesToUpdate = classes.filter(c => c.gradeLevel === grade);
+      classesToUpdate.forEach(c => {
+          const cCopy = { ...c };
+          if (type === 'exam' && semesterId) {
+             const sIdx = cCopy.semesters.findIndex(s => s.id === semesterId);
+             if (sIdx > -1) {
+                 const exams = cCopy.semesters[sIdx].exams || [];
+                 const exIdx = exams.findIndex(e => e.id === item.id);
+                 if (exIdx > -1) exams[exIdx] = item;
+                 else exams.push(item);
+                 cCopy.semesters[sIdx].exams = exams;
+             }
+          }
+          syncClass(cCopy);
+      });
+  };
+
+  // Navigation Logic
+  const goHome = () => {
+    setView(ViewState.LANDING);
+    setSelectedClassId(null);
+    setSelectedChapterId(null);
+    setCurrentUser(null);
+    window.scrollTo(0,0);
+  };
+
+  const selectedClass = classes.find(c => c.id === selectedClassId);
+  
+  let selectedChapter: Chapter | undefined;
+  if (selectedClass && selectedChapterId) {
+      for (const sem of selectedClass.semesters) {
+          const found = sem.chapters.find(c => c.id === selectedChapterId);
+          if (found) { selectedChapter = found; break; }
+      }
+  }
+
+  // Views Rendering
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 font-sans text-gray-800">
-      {view !== ViewState.ADMIN_DASHBOARD && <Navbar goHome={() => navigate(ViewState.LANDING)} goAdmin={() => navigate(ViewState.ADMIN_LOGIN)} schoolName={schoolProfile.name}/>}
-      <div className={view !== ViewState.ADMIN_DASHBOARD ? "pt-20" : ""}>
-        <AnimatePresence mode="wait">
-           {view === ViewState.LANDING && <LandingView key="landing" onSelectClass={(clsId) => navigate(ViewState.STUDENT_LOGIN, clsId)} onAdminLogin={() => navigate(ViewState.ADMIN_LOGIN)} onSelectCategory={(c) => { setSelectedCategory(c); navigate(ViewState.EXTRA_CATEGORY_LIST); }} classes={classesData} extras={extrasData} profile={schoolProfile}/>}
-           {view === ViewState.STUDENT_LOGIN && <StudentLoginView key="login" initialClassId={selectedClassId} classes={classesData} students={studentsData} onLoginSuccess={handleLoginSuccess} onBack={() => navigate(ViewState.LANDING)}/>}
-           {view === ViewState.CLASS_DETAIL && selectedClassId && <ClassDetailView key="class-detail" classData={classesData.find(c => c.id === selectedClassId)!} student={currentUser} onBack={() => navigate(ViewState.LANDING)} onSelectChapter={(cid) => navigate(ViewState.CHAPTER_CONTENT, selectedClassId, cid)}/>}
-           {view === ViewState.CHAPTER_CONTENT && activeChapter && <ChapterContentView key="chapter-content" chapter={activeChapter} onBack={() => navigate(ViewState.CLASS_DETAIL)}/>}
-           {view === ViewState.EXTRA_CATEGORY_LIST && (
-              <motion.div key="extra-list" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="max-w-6xl mx-auto px-4 py-8">
-                  <Button variant="secondary" onClick={() => navigate(ViewState.LANDING)} className="mb-8"><ArrowLeft size={16}/> Kembali</Button>
-                  <SectionTitle title={`Kategori: ${selectedCategory.toUpperCase()}`} />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {extrasData.filter(e => e.category === selectedCategory).map(item => (
-                          <Card key={item.id}>
-                              <div className="flex items-center gap-3 mb-3">
-                                  <div className={`p-2 rounded-lg bg-gray-100`}>{item.category === 'doa' && <BookHeart size={20} className="text-green-600"/>}{item.category === 'sholat' && <Sun size={20} className="text-orange-600"/>}{item.category !== 'doa' && item.category !== 'sholat' && <Sparkles size={20} className="text-blue-600"/>}</div>
-                                  <h3 className="font-bold text-gray-800">{item.title}</h3>
-                              </div>
-                              {item.type === 'link' ? <a href={item.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 text-sm font-medium"><LinkIcon size={14}/> Buka Konten</a> : <div className="prose prose-sm max-w-none text-gray-600" dangerouslySetInnerHTML={{ __html: item.content || '' }} />}
-                          </Card>
-                      ))}
-                      {extrasData.filter(e => e.category === selectedCategory).length === 0 && <div className="col-span-full text-center py-12 text-gray-400 italic">Belum ada konten untuk kategori ini.</div>}
-                  </div>
-              </motion.div>
-           )}
-           {view === ViewState.ADMIN_LOGIN && <AdminLoginView key="admin-login" onLogin={() => navigate(ViewState.ADMIN_DASHBOARD)} onBack={() => navigate(ViewState.LANDING)}/>}
-           {view === ViewState.ADMIN_DASHBOARD && <AdminDashboardView key="admin-dash" classes={classesData} schoolProfile={schoolProfile} students={studentsData} extras={extrasData} onUpdateChapterByGrade={handleUpdateChapterByGrade} onUpdateClassResourceByGrade={handleUpdateClassResourceByGrade} onUpdateClass={handleUpdateClass} onUpdateProfile={handleUpdateProfile} onSaveStudent={handleSaveStudent} onDeleteStudent={handleDeleteStudent} onSaveExtra={handleSaveExtra} onDeleteExtra={handleDeleteExtra} onLogout={() => navigate(ViewState.LANDING)}/>}
-        </AnimatePresence>
-      </div>
-      {view !== ViewState.ADMIN_DASHBOARD && view !== ViewState.CHAPTER_CONTENT && <Footer onAdminClick={() => navigate(ViewState.ADMIN_LOGIN)} profile={schoolProfile} />}
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
+      {view !== ViewState.ADMIN_DASHBOARD && <Navbar goHome={goHome} goAdmin={() => setView(ViewState.ADMIN_LOGIN)} schoolName={schoolProfile.name} />}
+      
+      <AnimatePresence mode="wait">
+        {view === ViewState.LANDING && (
+          <LandingView 
+             key="landing"
+             onSelectClass={(id) => { setSelectedClassId(id); setView(ViewState.STUDENT_LOGIN); }}
+             onAdminLogin={() => setView(ViewState.ADMIN_LOGIN)}
+             onSelectCategory={(cat) => { setSelectedCategory(cat); setView(ViewState.EXTRA_CATEGORY_LIST); }}
+             classes={classes}
+             extras={extras}
+             profile={schoolProfile}
+          />
+        )}
+
+        {view === ViewState.STUDENT_LOGIN && (
+          <StudentLoginView
+            key="login"
+            initialClassId={selectedClassId}
+            classes={classes}
+            students={students}
+            onLoginSuccess={(student, classId) => {
+               setCurrentUser(student);
+               setSelectedClassId(classId);
+               setView(ViewState.CLASS_DETAIL);
+            }}
+            onBack={goHome}
+          />
+        )}
+
+        {view === ViewState.CLASS_DETAIL && selectedClass && (
+           <ClassDetailView
+             key="class-detail"
+             classData={selectedClass}
+             student={currentUser}
+             onBack={() => setView(ViewState.STUDENT_LOGIN)}
+             onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }}
+           />
+        )}
+
+        {view === ViewState.CHAPTER_CONTENT && selectedChapter && (
+            <ChapterContentView
+              key="chapter"
+              chapter={selectedChapter}
+              onBack={() => setView(ViewState.CLASS_DETAIL)}
+            />
+        )}
+
+        {view === ViewState.EXTRA_CATEGORY_LIST && (
+            <motion.div key="extras" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} className="max-w-5xl mx-auto px-4 py-24">
+                <Button variant="secondary" onClick={goHome} className="mb-8"><ArrowLeft size={18}/> Kembali</Button>
+                <SectionTitle title={`Pojok ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`} subtitle="Temukan inspirasi dan ilmu yang bermanfaat."/>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {extras.filter(e => e.category === selectedCategory).map(item => (
+                        <Card key={item.id} className="flex flex-col h-full">
+                           <div className="flex-grow">
+                               <div className="flex items-start justify-between mb-4">
+                                  <Badge color="blue">{item.type === 'link' ? (item.url?.includes('youtu') ? 'Video' : 'Link') : 'Artikel'}</Badge>
+                               </div>
+                               <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
+                           </div>
+                           {item.type === 'link' ? (
+                               <a href={item.url} target="_blank" rel="noreferrer" className="mt-4 block w-full text-center py-3 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition-colors">Buka Konten</a>
+                           ) : (
+                               <Button onClick={() => {
+                                   alert("Fitur baca artikel lengkap akan segera hadir.");
+                               }} variant="secondary" className="mt-4 w-full">Baca Sekarang</Button>
+                           )}
+                        </Card>
+                    ))}
+                    {extras.filter(e => e.category === selectedCategory).length === 0 && (
+                        <div className="col-span-full text-center py-12 text-gray-500">Belum ada konten untuk kategori ini.</div>
+                    )}
+                </div>
+            </motion.div>
+        )}
+
+        {view === ViewState.ADMIN_LOGIN && (
+          <AdminLoginView 
+            key="admin-login"
+            onLogin={() => setView(ViewState.ADMIN_DASHBOARD)}
+            onBack={goHome}
+          />
+        )}
+
+        {view === ViewState.ADMIN_DASHBOARD && (
+          <AdminDashboardView 
+            key="admin-dash"
+            classes={classes}
+            schoolProfile={schoolProfile}
+            students={students}
+            extras={extras}
+            onUpdateChapterByGrade={handleChapterUpdate}
+            onUpdateClassResourceByGrade={handleClassResourceUpdate}
+            onUpdateClass={syncClass}
+            onUpdateProfile={syncProfile}
+            onSaveStudent={syncStudent}
+            onDeleteStudent={removeStudent}
+            onSaveExtra={syncExtra}
+            onDeleteExtra={removeExtra}
+            onLogout={goHome}
+          />
+        )}
+      </AnimatePresence>
+
+      {view !== ViewState.ADMIN_DASHBOARD && <Footer onAdminClick={() => setView(ViewState.ADMIN_LOGIN)} profile={schoolProfile} />}
     </div>
   );
 };
