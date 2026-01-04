@@ -1331,23 +1331,86 @@ const App: React.FC = () => {
   // Extra Item Accordion State
   const [expandedExtraId, setExpandedExtraId] = useState<string | null>(null);
 
-  // Sync with DB (Simple Implementation)
+  // Sync with DB (Fetch Data on Load)
   useEffect(() => {
     if (db) {
       const sync = async () => {
          try {
+           // 1. Fetch Profile
            const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
            if (profileSnap.exists()) setSchoolProfile(profileSnap.data() as SchoolProfile);
-           // Add other syncs here if needed
-         } catch(e) { console.error(e); }
+           
+           // 2. Fetch Classes
+           const cSnap = await getDocs(collection(db, 'classes'));
+           if (!cSnap.empty) {
+             const loadedClasses = cSnap.docs.map(d => d.data() as ClassData);
+             // Sort classes naturally if needed, here assuming ID is fine
+             setClasses(loadedClasses.sort((a,b) => a.id.localeCompare(b.id)));
+           }
+
+           // 3. Fetch Students
+           const sSnap = await getDocs(collection(db, 'students'));
+           if (!sSnap.empty) {
+             setStudents(sSnap.docs.map(d => d.data() as Student));
+           }
+
+           // 4. Fetch Extras
+           const eSnap = await getDocs(collection(db, 'extras'));
+           if (!eSnap.empty) {
+             setExtras(eSnap.docs.map(d => d.data() as ExtraContent));
+           }
+
+         } catch(e) { console.error("Error fetching data:", e); }
       };
       sync();
     }
   }, []);
 
-  // Handlers
-  const handleUpdateChapter = (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
-    setClasses(prev => prev.map(c => {
+  // Handlers for Persistence
+
+  const handleUpdateProfile = async (p: SchoolProfile) => {
+    setSchoolProfile(p);
+    if(db) await setDoc(doc(db, 'settings', 'schoolProfile'), p);
+  };
+
+  const handleUpdateClass = async (c: ClassData) => {
+    setClasses(prev => prev.map(p => p.id === c.id ? c : p));
+    if(db) await setDoc(doc(db, 'classes', c.id), c);
+  };
+
+  const handleSaveStudent = async (s: Student) => {
+    setStudents(prev => { 
+        const idx = prev.findIndex(p => p.id === s.id); 
+        if (idx > -1) { const n = [...prev]; n[idx] = s; return n; } 
+        return [...prev, s]; 
+    });
+    if(db) await setDoc(doc(db, 'students', s.id), s);
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    setStudents(prev => prev.filter(s => s.id !== id));
+    if(db) await deleteDoc(doc(db, 'students', id));
+  };
+
+  const handleSaveExtra = async (e: ExtraContent) => {
+    setExtras(prev => { 
+        const idx = prev.findIndex(p => p.id === e.id); 
+        if (idx > -1) { const n = [...prev]; n[idx] = e; return n; } 
+        return [...prev, e]; 
+    });
+    if(db) await setDoc(doc(db, 'extras', e.id), e);
+  };
+
+  const handleDeleteExtra = async (id: string) => {
+    setExtras(prev => prev.filter(e => e.id !== id));
+    if(db) await deleteDoc(doc(db, 'extras', id));
+  };
+
+  // Complex Updates (Batch)
+
+  const handleUpdateChapter = async (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
+    // 1. Calculate new state
+    const newClasses = classes.map(c => {
       if (c.gradeLevel === grade) {
         return {
           ...c,
@@ -1363,12 +1426,25 @@ const App: React.FC = () => {
         };
       }
       return c;
-    }));
+    });
+
+    setClasses(newClasses);
+
+    // 2. Persist to Firebase (Batch update for all classes in this grade)
+    if (db) {
+      const batch = writeBatch(db);
+      const classesToUpdate = newClasses.filter(c => c.gradeLevel === grade);
+      classesToUpdate.forEach(c => {
+        const ref = doc(db, 'classes', c.id);
+        batch.set(ref, c);
+      });
+      await batch.commit();
+    }
   };
 
-  const handleUpdateResource = (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semId?: string) => {
-      // For simplicity, update all classes of that grade
-      setClasses(prev => prev.map(c => {
+  const handleUpdateResource = async (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semId?: string) => {
+      // 1. Calculate new state
+      const newClasses = classes.map(c => {
           if (c.gradeLevel === grade) {
               if (type === 'exam' && semId) {
                   return {
@@ -1386,11 +1462,24 @@ const App: React.FC = () => {
                   };
               }
               // Schedule and grades are usually updated via onUpdateClass directly in dashboard for specific class
-              // But if called via this handler:
+              // But if called via this handler (legacy support):
               if (type === 'schedule') return { ...c, schedule: item };
           }
           return c;
-      }));
+      });
+
+      setClasses(newClasses);
+
+      // 2. Persist to Firebase
+      if (db) {
+        const batch = writeBatch(db);
+        const classesToUpdate = newClasses.filter(c => c.gradeLevel === grade);
+        classesToUpdate.forEach(c => {
+            const ref = doc(db, 'classes', c.id);
+            batch.set(ref, c);
+        });
+        await batch.commit();
+      }
   };
 
   const renderContent = () => {
@@ -1413,7 +1502,6 @@ const App: React.FC = () => {
              setCurrentUser(s); 
              setSelectedClassId(cId); 
              setView(ViewState.CLASS_DETAIL);
-             // FIX: Scroll to top after successful login
              window.scrollTo(0, 0);
            }}
            onBack={() => setView(ViewState.LANDING)}
@@ -1441,12 +1529,12 @@ const App: React.FC = () => {
            extras={extras}
            onUpdateChapterByGrade={handleUpdateChapter}
            onUpdateClassResourceByGrade={handleUpdateResource}
-           onUpdateClass={(c) => setClasses(prev => prev.map(p => p.id === c.id ? c : p))}
-           onUpdateProfile={(p) => setSchoolProfile(p)}
-           onSaveStudent={(s) => setStudents(prev => { const idx = prev.findIndex(p => p.id === s.id); if (idx > -1) { const n = [...prev]; n[idx] = s; return n; } return [...prev, s]; })}
-           onDeleteStudent={(id) => setStudents(prev => prev.filter(s => s.id !== id))}
-           onSaveExtra={(e) => setExtras(prev => { const idx = prev.findIndex(p => p.id === e.id); if (idx > -1) { const n = [...prev]; n[idx] = e; return n; } return [...prev, e]; })}
-           onDeleteExtra={(id) => setExtras(prev => prev.filter(e => e.id !== id))}
+           onUpdateClass={handleUpdateClass}
+           onUpdateProfile={handleUpdateProfile}
+           onSaveStudent={handleSaveStudent}
+           onDeleteStudent={handleDeleteStudent}
+           onSaveExtra={handleSaveExtra}
+           onDeleteExtra={handleDeleteExtra}
            onLogout={() => setView(ViewState.LANDING)}
         />;
       case ViewState.EXTRA_CATEGORY_LIST:
@@ -1480,7 +1568,7 @@ const App: React.FC = () => {
                              >
                                 <div className="p-6">
                                    {ex.type === 'link' ? (
-                                      ex.url?.includes('youtube') ? 
+                                      ex.url?.includes('youtu') ? 
                                       <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(ex.url)}`} className="w-full h-[300px] md:h-[450px]" allowFullScreen></iframe></div> : 
                                       <a href={ex.url} target="_blank" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"><LinkIcon size={18}/> Buka Tautan Eksternal</a>
                                    ) : (
