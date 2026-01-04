@@ -56,7 +56,7 @@ import { writeBatch } from 'firebase/firestore';
 
 import { CLASSES_DATA, FEATURES, DEFAULT_SCHOOL_PROFILE, DEFAULT_STUDENTS, DEFAULT_EXTRAS } from './constants';
 import { ViewState, ClassData, Chapter, SchoolProfile, Student, ExtraContent, ExtraCategory, ResourceItem, ContentSection, Semester } from './types';
-import { Button, Card, SectionTitle, Input, TextArea } from './components/UIComponents';
+import { Button, Card, SectionTitle, Input, TextArea, Badge } from './components/UIComponents';
 
 // Declaration for XLSX (SheetJS) loaded via CDN in index.html
 declare global {
@@ -227,6 +227,33 @@ const TrafficLights = () => (
     <div className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29]"></div>
   </div>
 );
+
+// --- New Component: Rich HTML Content Renderer ---
+const RichHtmlContent: React.FC<{ content: string; className?: string }> = ({ content, className = '' }) => {
+  // Gunakan regex untuk deteksi yang lebih robust (case insensitive)
+  const isComplexContent = /<script|<style|<iframe/i.test(content);
+
+  if (isComplexContent) {
+    return (
+      <div className={`w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ${className}`}>
+        {/* Menggunakan srcDoc untuk menjalankan script dalam sandbox yang aman */}
+        <iframe 
+          srcDoc={content} 
+          className="w-full h-[800px] border-none" 
+          title="Embedded Content"
+          sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className={`prose prose-sm max-w-none prose-blue ${className}`} 
+      dangerouslySetInnerHTML={{ __html: content }} 
+    />
+  );
+};
 
 const Navbar: React.FC<{ 
   goHome: () => void, 
@@ -532,7 +559,7 @@ const ClassDetailView: React.FC<{
       {classData.schedule && (
          <Card className="mb-6 border-l-4 border-l-blue-500 bg-blue-50/50">
             <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2"><CalendarRange size={18}/> Jadwal Pelajaran {classData.name}</h3>
-            {classData.schedule.type === 'html' ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: classData.schedule.content || '' }} /> : <a href={classData.schedule.url} target="_blank" className="text-blue-600 hover:underline">Lihat Jadwal</a>}
+            {classData.schedule.type === 'html' ? <RichHtmlContent content={classData.schedule.content || ''} /> : <a href={classData.schedule.url} target="_blank" className="text-blue-600 hover:underline">Lihat Jadwal</a>}
          </Card>
       )}
 
@@ -542,7 +569,7 @@ const ClassDetailView: React.FC<{
                <div className="p-2 bg-green-100 rounded-lg text-green-600"><GraduationCap size={24}/></div>
                Rekapitulasi Nilai Semester {activeSem === 'ganjil' ? 'Ganjil' : 'Genap'}
             </h3>
-            {gradeResource.type === 'html' ? <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: gradeResource.content || '' }} /> : <a href={gradeResource.url} target="_blank" className="text-green-600 hover:underline flex items-center gap-2 font-semibold"><ExternalLink size={16}/> Buka Data Rekap Nilai</a>}
+            {gradeResource.type === 'html' ? <RichHtmlContent content={gradeResource.content || ''} /> : <a href={gradeResource.url} target="_blank" className="text-green-600 hover:underline flex items-center gap-2 font-semibold"><ExternalLink size={16}/> Buka Data Rekap Nilai</a>}
         </Card>
       )}
 
@@ -604,7 +631,7 @@ const ChapterContentView: React.FC<{ chapter: Chapter; onBack: () => void }> = (
                    {chapter.contents && chapter.contents.length > 0 ? chapter.contents.map(section => (
                      <div key={section.id} className="mb-8">
                         {section.title && <h3 className="text-xl font-bold mb-3 text-gray-800">{section.title}</h3>}
-                        {section.type === 'link' ? <a href={section.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 font-medium"><LinkIcon size={18}/> Buka Materi: {section.title}</a> : <div dangerouslySetInnerHTML={{ __html: section.content }} />}
+                        {section.type === 'link' ? <a href={section.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 font-medium"><LinkIcon size={18}/> Buka Materi: {section.title}</a> : <RichHtmlContent content={section.content} />}
                      </div>
                    )) : <p className="text-gray-500 italic">Materi belum tersedia.</p>}
                 </div>
@@ -616,7 +643,7 @@ const ChapterContentView: React.FC<{ chapter: Chapter; onBack: () => void }> = (
                          <h3 className="font-bold text-lg mb-2">{video.title}</h3>
                          {video.type === 'link' && video.url ? (
                            <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} title={video.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-[300px] md:h-[400px]"></iframe></div>
-                         ) : <div dangerouslySetInnerHTML={{ __html: video.content || '' }} />}
+                         ) : <RichHtmlContent content={video.content || ''} />}
                       </div>
                     )) : <p className="text-gray-500 italic">Video pembelajaran belum tersedia.</p>}
                  </div>
@@ -629,7 +656,7 @@ const ChapterContentView: React.FC<{ chapter: Chapter; onBack: () => void }> = (
                              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600"><FileQuestion size={24}/></div>
                              <div><h4 className="font-bold text-gray-900">{quiz.title}</h4><p className="text-sm text-gray-500">Kerjakan dengan jujur.</p></div>
                           </div>
-                          {quiz.type === 'link' ? <a href={quiz.url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">Mulai Kuis</a> : <div dangerouslySetInnerHTML={{ __html: quiz.content || '' }} />}
+                          {quiz.type === 'link' ? <a href={quiz.url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">Mulai Kuis</a> : <RichHtmlContent content={quiz.content || ''} />}
                        </div>
                     )) : <p className="text-gray-500 italic">Kuis belum tersedia.</p>}
                  </div>
@@ -1231,282 +1258,208 @@ const AdminDashboardView: React.FC<{
   );
 };
 
-// --- APP COMPONENT ---
-
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LANDING);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<ExtraCategory>('doa');
-  
   const [currentUser, setCurrentUser] = useState<Student | null>(null);
   
-  // Data State
+  // Data States
   const [classes, setClasses] = useState<ClassData[]>(CLASSES_DATA);
   const [students, setStudents] = useState<Student[]>(DEFAULT_STUDENTS);
   const [extras, setExtras] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(DEFAULT_SCHOOL_PROFILE);
   
-  // Load data from Firebase on mount
+  // Selection State
+  const [selectedCategory, setSelectedCategory] = useState<ExtraCategory | null>(null);
+
   useEffect(() => {
     const fetchData = async () => {
-      if (!db) return; // Offline mode uses constants
-
+      if (!db) return;
       try {
-        // 1. Profile
-        const profileSnap = await getDoc(doc(db, 'settings', 'profile'));
-        if (profileSnap.exists()) {
-          setSchoolProfile(profileSnap.data() as SchoolProfile);
-        }
+        const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
+        if (profileSnap.exists()) setSchoolProfile(profileSnap.data() as SchoolProfile);
 
-        // 2. Classes
-        const classesSnap = await getDocs(collection(db, 'classes'));
-        if (!classesSnap.empty) {
-          const loadedClasses: ClassData[] = [];
-          classesSnap.forEach(doc => loadedClasses.push(doc.data() as ClassData));
-          // Merge with default to ensure structure
-          setClasses(prev => {
-             const merged = [...prev];
-             loadedClasses.forEach(loaded => {
-                const idx = merged.findIndex(c => c.id === loaded.id);
-                if (idx > -1) merged[idx] = loaded;
-             });
-             return merged;
-          });
-        }
+        const sSnap = await getDocs(collection(db, 'students'));
+        if (!sSnap.empty) setStudents(sSnap.docs.map(d => d.data() as Student));
+        
+        const cSnap = await getDocs(collection(db, 'classes'));
+        if (!cSnap.empty) setClasses(cSnap.docs.map(d => d.data() as ClassData));
 
-        // 3. Students
-        const studentsSnap = await getDocs(collection(db, 'students'));
-        if (!studentsSnap.empty) {
-          const loadedStudents: Student[] = [];
-          studentsSnap.forEach(doc => loadedStudents.push(doc.data() as Student));
-          setStudents(loadedStudents);
-        }
-
-        // 4. Extras
-        const extrasSnap = await getDocs(collection(db, 'extras'));
-        if (!extrasSnap.empty) {
-            const loadedExtras: ExtraContent[] = [];
-            extrasSnap.forEach(doc => loadedExtras.push(doc.data() as ExtraContent));
-            setExtras(loadedExtras);
-        }
-
-      } catch (error) {
-        console.error("Error fetching data from Firebase:", error);
+        const eSnap = await getDocs(collection(db, 'extras'));
+        if (!eSnap.empty) setExtras(eSnap.docs.map(d => d.data() as ExtraContent));
+      } catch (e) {
+        console.error("Firebase load error", e);
       }
     };
-
     fetchData();
   }, []);
 
-  // Sync helpers
-  const syncClass = async (updatedClass: ClassData) => {
-    setClasses(prev => prev.map(c => c.id === updatedClass.id ? updatedClass : c));
-    if (db) await setDoc(doc(db, 'classes', updatedClass.id), updatedClass);
+  const handleUpdateProfile = async (p: SchoolProfile) => {
+    setSchoolProfile(p);
+    if(db) await setDoc(doc(db, 'settings', 'schoolProfile'), p);
   };
   
-  const syncProfile = async (updatedProfile: SchoolProfile) => {
-    setSchoolProfile(updatedProfile);
-    if (db) await setDoc(doc(db, 'settings', 'profile'), updatedProfile);
+  const handleUpdateClass = async (c: ClassData) => {
+    setClasses(prev => prev.map(cls => cls.id === c.id ? c : cls));
+    if(db) await setDoc(doc(db, 'classes', c.id), c);
   };
 
-  const syncStudent = async (student: Student) => {
-      setStudents(prev => {
-          const exists = prev.find(s => s.id === student.id);
-          if (exists) return prev.map(s => s.id === student.id ? student : s);
-          return [...prev, student];
+  const handleSaveStudent = async (s: Student) => {
+    setStudents(prev => {
+        const idx = prev.findIndex(st => st.id === s.id);
+        if (idx >= 0) { const copy = [...prev]; copy[idx] = s; return copy; }
+        return [...prev, s];
+    });
+    if(db) await setDoc(doc(db, 'students', s.id), s);
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+    setStudents(prev => prev.filter(s => s.id !== id));
+    if(db) await deleteDoc(doc(db, 'students', id));
+  };
+
+  const handleSaveExtra = async (e: ExtraContent) => {
+    setExtras(prev => {
+        const idx = prev.findIndex(ex => ex.id === e.id);
+        if (idx >= 0) { const copy = [...prev]; copy[idx] = e; return copy; }
+        return [...prev, e];
+    });
+    if(db) await setDoc(doc(db, 'extras', e.id), e);
+  };
+
+  const handleDeleteExtra = async (id: string) => {
+    setExtras(prev => prev.filter(e => e.id !== id));
+    if(db) await deleteDoc(doc(db, 'extras', id));
+  };
+
+  const onUpdateChapterByGrade = async (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
+      const newClasses = classes.map(cls => {
+          if (cls.gradeLevel !== grade) return cls;
+          const newSems = cls.semesters.map(sem => {
+              if (sem.id !== semId) return sem;
+              const newChaps = sem.chapters.map(ch => ch.id === chapId ? { ...ch, ...data } : ch);
+              return { ...sem, chapters: newChaps };
+          });
+          return { ...cls, semesters: newSems };
       });
-      if (db) await setDoc(doc(db, 'students', student.id), student);
-  };
-
-  const removeStudent = async (id: string) => {
-      setStudents(prev => prev.filter(s => s.id !== id));
-      if (db) await deleteDoc(doc(db, 'students', id));
-  };
-
-  const syncExtra = async (extra: ExtraContent) => {
-      setExtras(prev => {
-          const exists = prev.find(e => e.id === extra.id);
-          if (exists) return prev.map(e => e.id === extra.id ? extra : e);
-          return [...prev, extra];
-      });
-      if (db) await setDoc(doc(db, 'extras', extra.id), extra);
-  };
-
-  const removeExtra = async (id: string) => {
-      setExtras(prev => prev.filter(e => e.id !== id));
-      if (db) await deleteDoc(doc(db, 'extras', id));
-  };
-
-  // Handlers
-  const handleChapterUpdate = (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
-      const classToUpdate = classes.find(c => c.gradeLevel === grade);
-      if (!classToUpdate) return;
-      
-      const updatedClass = { ...classToUpdate };
-      const semIndex = updatedClass.semesters.findIndex(s => s.id === semId);
-      if (semIndex === -1) return;
-      
-      const chapIndex = updatedClass.semesters[semIndex].chapters.findIndex(c => c.id === chapId);
-      if (chapIndex === -1) return;
-      
-      updatedClass.semesters[semIndex].chapters[chapIndex] = { ...updatedClass.semesters[semIndex].chapters[chapIndex], ...data };
-      
-      // Update ALL classes with same grade
-      const classesToUpdate = classes.filter(c => c.gradeLevel === grade);
-      classesToUpdate.forEach(c => {
-          const cCopy = JSON.parse(JSON.stringify(c));
-          cCopy.semesters[semIndex].chapters[chapIndex] = updatedClass.semesters[semIndex].chapters[chapIndex];
-          syncClass(cCopy);
-      });
-  };
-
-  const handleClassResourceUpdate = (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semesterId?: string) => {
-      const classesToUpdate = classes.filter(c => c.gradeLevel === grade);
-      classesToUpdate.forEach(c => {
-          const cCopy = { ...c };
-          if (type === 'exam' && semesterId) {
-             const sIdx = cCopy.semesters.findIndex(s => s.id === semesterId);
-             if (sIdx > -1) {
-                 const exams = cCopy.semesters[sIdx].exams || [];
-                 const exIdx = exams.findIndex(e => e.id === item.id);
-                 if (exIdx > -1) exams[exIdx] = item;
-                 else exams.push(item);
-                 cCopy.semesters[sIdx].exams = exams;
-             }
-          }
-          syncClass(cCopy);
-      });
-  };
-
-  // Navigation Logic
-  const goHome = () => {
-    setView(ViewState.LANDING);
-    setSelectedClassId(null);
-    setSelectedChapterId(null);
-    setCurrentUser(null);
-    window.scrollTo(0,0);
-  };
-
-  const selectedClass = classes.find(c => c.id === selectedClassId);
-  
-  let selectedChapter: Chapter | undefined;
-  if (selectedClass && selectedChapterId) {
-      for (const sem of selectedClass.semesters) {
-          const found = sem.chapters.find(c => c.id === selectedChapterId);
-          if (found) { selectedChapter = found; break; }
+      setClasses(newClasses);
+      if (db) {
+          const batch = writeBatch(db);
+          newClasses.filter(c => c.gradeLevel === grade).forEach(c => batch.set(doc(db, 'classes', c.id), c));
+          await batch.commit();
       }
-  }
+  };
 
-  // Views Rendering
+  const onUpdateClassResourceByGrade = async (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semId?: string) => {
+      const newClasses = classes.map(cls => {
+          if (cls.gradeLevel !== grade) return cls;
+          let updatedCls = { ...cls };
+          if (type === 'schedule') updatedCls.schedule = item;
+          else if (semId) {
+              updatedCls.semesters = cls.semesters.map(s => {
+                  if (s.id !== semId) return s;
+                  if (type === 'grades') return { ...s, grades: item };
+                  if (type === 'exam') {
+                      const exams = s.exams ? [...s.exams] : [];
+                      const idx = exams.findIndex(e => e.id === item.id);
+                      if (idx >= 0) exams[idx] = item; else exams.push(item);
+                      return { ...s, exams };
+                  }
+                  return s;
+              });
+          }
+          return updatedCls;
+      });
+      setClasses(newClasses);
+      if (db) {
+          const batch = writeBatch(db);
+          newClasses.filter(c => c.gradeLevel === grade).forEach(c => batch.set(doc(db, 'classes', c.id), c));
+          await batch.commit();
+      }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900">
-      {view !== ViewState.ADMIN_DASHBOARD && <Navbar goHome={goHome} goAdmin={() => setView(ViewState.ADMIN_LOGIN)} schoolName={schoolProfile.name} />}
-      
-      <AnimatePresence mode="wait">
-        {view === ViewState.LANDING && (
-          <LandingView 
-             key="landing"
-             onSelectClass={(id) => { setSelectedClassId(id); setView(ViewState.STUDENT_LOGIN); }}
-             onAdminLogin={() => setView(ViewState.ADMIN_LOGIN)}
-             onSelectCategory={(cat) => { setSelectedCategory(cat); setView(ViewState.EXTRA_CATEGORY_LIST); }}
-             classes={classes}
-             extras={extras}
-             profile={schoolProfile}
-          />
+    <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-900">
+        {view !== ViewState.ADMIN_DASHBOARD && (
+            <Navbar goHome={() => setView(ViewState.LANDING)} goAdmin={view === ViewState.LANDING ? () => setView(ViewState.ADMIN_LOGIN) : undefined} schoolName={schoolProfile.name}/>
         )}
-
-        {view === ViewState.STUDENT_LOGIN && (
-          <StudentLoginView
-            key="login"
-            initialClassId={selectedClassId}
-            classes={classes}
-            students={students}
-            onLoginSuccess={(student, classId) => {
-               setCurrentUser(student);
-               setSelectedClassId(classId);
-               setView(ViewState.CLASS_DETAIL);
-            }}
-            onBack={goHome}
-          />
-        )}
-
-        {view === ViewState.CLASS_DETAIL && selectedClass && (
-           <ClassDetailView
-             key="class-detail"
-             classData={selectedClass}
-             student={currentUser}
-             onBack={() => setView(ViewState.STUDENT_LOGIN)}
-             onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }}
-           />
-        )}
-
-        {view === ViewState.CHAPTER_CONTENT && selectedChapter && (
-            <ChapterContentView
-              key="chapter"
-              chapter={selectedChapter}
-              onBack={() => setView(ViewState.CLASS_DETAIL)}
-            />
-        )}
-
-        {view === ViewState.EXTRA_CATEGORY_LIST && (
-            <motion.div key="extras" initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}} className="max-w-5xl mx-auto px-4 py-24">
-                <Button variant="secondary" onClick={goHome} className="mb-8"><ArrowLeft size={18}/> Kembali</Button>
-                <SectionTitle title={`Pojok ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}`} subtitle="Temukan inspirasi dan ilmu yang bermanfaat."/>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {extras.filter(e => e.category === selectedCategory).map(item => (
-                        <Card key={item.id} className="flex flex-col h-full">
-                           <div className="flex-grow">
-                               <div className="flex items-start justify-between mb-4">
-                                  <Badge color="blue">{item.type === 'link' ? (item.url?.includes('youtu') ? 'Video' : 'Link') : 'Artikel'}</Badge>
-                               </div>
-                               <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                           </div>
-                           {item.type === 'link' ? (
-                               <a href={item.url} target="_blank" rel="noreferrer" className="mt-4 block w-full text-center py-3 bg-blue-50 text-blue-600 font-bold rounded-xl hover:bg-blue-100 transition-colors">Buka Konten</a>
-                           ) : (
-                               <Button onClick={() => {
-                                   alert("Fitur baca artikel lengkap akan segera hadir.");
-                               }} variant="secondary" className="mt-4 w-full">Baca Sekarang</Button>
-                           )}
-                        </Card>
-                    ))}
-                    {extras.filter(e => e.category === selectedCategory).length === 0 && (
-                        <div className="col-span-full text-center py-12 text-gray-500">Belum ada konten untuk kategori ini.</div>
-                    )}
-                </div>
+        
+        <AnimatePresence mode="wait">
+            <motion.div key={view} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
+                {view === ViewState.LANDING && (
+                    <LandingView 
+                        classes={classes} 
+                        extras={extras} 
+                        profile={schoolProfile} 
+                        onSelectClass={(id) => { setSelectedClassId(id); setView(ViewState.STUDENT_LOGIN); }}
+                        onAdminLogin={() => setView(ViewState.ADMIN_LOGIN)}
+                        onSelectCategory={(cat) => { setSelectedCategory(cat); setView(ViewState.EXTRA_CATEGORY_LIST); }}
+                    />
+                )}
+                {view === ViewState.STUDENT_LOGIN && (
+                    <StudentLoginView 
+                        initialClassId={selectedClassId}
+                        classes={classes}
+                        students={students}
+                        onBack={() => setView(ViewState.LANDING)}
+                        onLoginSuccess={(s, cId) => { setCurrentUser(s); setSelectedClassId(cId); setView(ViewState.CLASS_DETAIL); }}
+                    />
+                )}
+                {view === ViewState.CLASS_DETAIL && selectedClassId && (
+                    <ClassDetailView 
+                        classData={classes.find(c => c.id === selectedClassId)!}
+                        student={currentUser}
+                        onBack={() => { setCurrentUser(null); setView(ViewState.LANDING); }}
+                        onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }}
+                    />
+                )}
+                {view === ViewState.CHAPTER_CONTENT && selectedClassId && selectedChapterId && (
+                    <ChapterContentView 
+                        chapter={classes.find(c => c.id === selectedClassId)?.semesters.flatMap(s => s.chapters).find(ch => ch.id === selectedChapterId)!}
+                        onBack={() => setView(ViewState.CLASS_DETAIL)}
+                    />
+                )}
+                {view === ViewState.ADMIN_LOGIN && (
+                    <AdminLoginView onLogin={() => setView(ViewState.ADMIN_DASHBOARD)} onBack={() => setView(ViewState.LANDING)}/>
+                )}
+                {view === ViewState.ADMIN_DASHBOARD && (
+                    <AdminDashboardView 
+                        classes={classes}
+                        schoolProfile={schoolProfile}
+                        students={students}
+                        extras={extras}
+                        onLogout={() => setView(ViewState.LANDING)}
+                        onUpdateProfile={handleUpdateProfile}
+                        onUpdateClass={handleUpdateClass}
+                        onSaveStudent={handleSaveStudent}
+                        onDeleteStudent={handleDeleteStudent}
+                        onSaveExtra={handleSaveExtra}
+                        onDeleteExtra={handleDeleteExtra}
+                        onUpdateChapterByGrade={onUpdateChapterByGrade}
+                        onUpdateClassResourceByGrade={onUpdateClassResourceByGrade}
+                    />
+                )}
+                {view === ViewState.EXTRA_CATEGORY_LIST && (
+                    <div className="max-w-6xl mx-auto px-4 py-8">
+                        <Button variant="secondary" onClick={() => setView(ViewState.LANDING)} className="mb-8"><ArrowLeft size={16}/> Kembali</Button>
+                        <SectionTitle title={selectedCategory ? `Pojok ${selectedCategory.toUpperCase()}` : 'Pojok Literasi'} />
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {extras.filter(e => e.category === selectedCategory).map(item => (
+                                <Card key={item.id} onClick={() => { if(item.type==='link' && item.url) window.open(item.url, '_blank'); }}>
+                                    <h3 className="font-bold text-lg mb-2">{item.title}</h3>
+                                    {item.type === 'html' && <RichHtmlContent content={item.content || ''} className="line-clamp-4 max-h-32 overflow-hidden"/>}
+                                    {item.type === 'link' && <div className="text-blue-500 flex items-center gap-2 mt-4 font-semibold"><ExternalLink size={16}/> Buka Konten</div>}
+                                </Card>
+                            ))}
+                            {extras.filter(e => e.category === selectedCategory).length === 0 && <p className="col-span-full text-center text-gray-500 italic">Belum ada konten untuk kategori ini.</p>}
+                        </div>
+                    </div>
+                )}
             </motion.div>
-        )}
-
-        {view === ViewState.ADMIN_LOGIN && (
-          <AdminLoginView 
-            key="admin-login"
-            onLogin={() => setView(ViewState.ADMIN_DASHBOARD)}
-            onBack={goHome}
-          />
-        )}
-
-        {view === ViewState.ADMIN_DASHBOARD && (
-          <AdminDashboardView 
-            key="admin-dash"
-            classes={classes}
-            schoolProfile={schoolProfile}
-            students={students}
-            extras={extras}
-            onUpdateChapterByGrade={handleChapterUpdate}
-            onUpdateClassResourceByGrade={handleClassResourceUpdate}
-            onUpdateClass={syncClass}
-            onUpdateProfile={syncProfile}
-            onSaveStudent={syncStudent}
-            onDeleteStudent={removeStudent}
-            onSaveExtra={syncExtra}
-            onDeleteExtra={removeExtra}
-            onLogout={goHome}
-          />
-        )}
-      </AnimatePresence>
-
-      {view !== ViewState.ADMIN_DASHBOARD && <Footer onAdminClick={() => setView(ViewState.ADMIN_LOGIN)} profile={schoolProfile} />}
+        </AnimatePresence>
+        
+        {view !== ViewState.ADMIN_DASHBOARD && <Footer onAdminClick={() => setView(ViewState.ADMIN_LOGIN)} profile={schoolProfile}/>}
     </div>
   );
 };
