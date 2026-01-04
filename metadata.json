@@ -1,0 +1,7 @@
+{
+  "name": "LMS PAI SMPN 3 Pacet",
+  "description": "Learning Management System Pendidikan Agama Islam untuk SMPN 3 Pacet dengan desain modern ala Apple.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
