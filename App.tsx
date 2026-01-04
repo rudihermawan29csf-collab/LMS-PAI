@@ -44,14 +44,16 @@ import {
   CalendarRange,
   GraduationCap,
   Filter,
-  Phone
+  Phone,
+  UserCog,
+  User
 } from 'lucide-react';
 
 // Import Firebase (db will be null if config not set)
 import { db, doc, setDoc, getDoc, collection, getDocs } from './firebase';
 
 import { CLASSES_DATA, FEATURES, DEFAULT_SCHOOL_PROFILE, DEFAULT_STUDENTS, DEFAULT_EXTRAS } from './constants';
-import { ViewState, ClassData, Chapter, SchoolProfile, Student, ExtraContent, ExtraCategory, ResourceItem } from './types';
+import { ViewState, ClassData, Chapter, SchoolProfile, Student, ExtraContent, ExtraCategory, ResourceItem, ContentSection } from './types';
 import { Button, Card, SectionTitle, Input, TextArea } from './components/UIComponents';
 
 // Declaration for XLSX (SheetJS) loaded via CDN in index.html
@@ -78,6 +80,15 @@ const PrayerTimesWidget: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [nextPrayer, setNextPrayer] = useState<string>('');
 
+  // Fallback times (WIB approx) if API fails
+  const fallbackTimes = {
+    Fajr: "04:15",
+    Dhuhr: "11:40",
+    Asr: "15:00",
+    Maghrib: "17:50",
+    Isha: "19:00"
+  };
+
   useEffect(() => {
     // Clock
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -95,16 +106,23 @@ const PrayerTimesWidget: React.FC = () => {
           if (data.code === 200) {
             setTimes(data.data.timings);
             setLocationName('Lokasi Anda');
+          } else {
+             // Fallback
+             setTimes(fallbackTimes);
+             setLocationName('Waktu Jakarta (Offline)');
           }
         } catch (error) {
           console.error("Error fetching prayer times:", error);
-          setLocationName("Jadwal Sholat Tidak Tersedia");
+          setTimes(fallbackTimes);
+          setLocationName("Waktu Jakarta (Offline)");
         }
       }, (error) => {
-        setLocationName("Izin Lokasi Ditolak");
+        setTimes(fallbackTimes);
+        setLocationName("Waktu Jakarta (Default)");
       });
     } else {
-      setLocationName("Geolocation Tidak Didukung");
+      setTimes(fallbackTimes);
+      setLocationName("Waktu Jakarta (Default)");
     }
 
     return () => clearInterval(timer);
@@ -202,6 +220,30 @@ const PrayerTimesWidget: React.FC = () => {
 
 // --- Components ---
 
+const RobotGreeting = () => (
+  <div className="max-w-4xl mx-auto mb-10 flex flex-col md:flex-row items-center gap-6 animate-fade-in-up">
+    <div className="relative group cursor-pointer">
+       {/* Peci (Hat) */}
+       <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-8 bg-gray-900 rounded-t-lg z-20 shadow-md"></div>
+       {/* Robot Body */}
+       <div className="w-24 h-24 bg-gradient-to-b from-gray-50 to-white rounded-2xl border-2 border-gray-200 shadow-xl flex items-center justify-center relative z-10 animate-bounce-slow">
+          {/* Eyes */}
+          <div className="flex gap-4">
+             <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse"></div>
+             <div className="w-4 h-4 bg-blue-500 rounded-full animate-pulse delay-75"></div>
+          </div>
+          {/* Mouth */}
+          <div className="absolute bottom-6 w-8 h-1.5 bg-gray-300 rounded-full"></div>
+       </div>
+    </div>
+    <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl rounded-tl-none border border-white/50 shadow-lg flex-1 transform transition-transform hover:scale-[1.01]">
+       <p className="text-gray-700 font-medium leading-relaxed italic text-lg">
+         "Assalamu’alaikum Warahmatullahi Wabarakatuh. Selamat datang di LMS Pendidikan Agama Islam. Mari belajar memahami Islam secara utuh, menumbuhkan iman, memperkuat akhlak, dan mengamalkan nilai-nilai kebaikan dalam kehidupan sehari-hari."
+       </p>
+    </div>
+  </div>
+);
+
 // macOS-like Traffic Lights
 const TrafficLights = () => (
   <div className="flex items-center gap-1.5 absolute top-4 left-4">
@@ -238,16 +280,7 @@ const Navbar: React.FC<{
         </div>
 
         <div className="hidden md:flex items-center gap-6">
-          {goAdmin && (
-             <button 
-               onClick={goAdmin} 
-               className="text-sm font-medium text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1 bg-white/50 px-3 py-2 rounded-lg hover:bg-white border border-transparent hover:border-gray-200 hover:shadow-sm"
-               title="Masuk sebagai Administrator"
-             >
-               <Settings size={16} />
-               <span>Admin</span>
-             </button>
-          )}
+          {/* Admin link moved to hero/login area as per request, but can keep small here too */}
         </div>
 
         <button className="md:hidden text-gray-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
@@ -265,10 +298,11 @@ const Navbar: React.FC<{
             className="md:hidden bg-white/95 backdrop-blur-xl border-b border-gray-200 overflow-hidden"
           >
              <div className="px-4 py-4 space-y-3 flex flex-col">
+                <button onClick={goHome} className="block w-full text-left py-2 text-gray-600 text-sm font-medium">Beranda</button>
                 {goAdmin && (
-                   <button onClick={goAdmin} className="block w-full text-left py-2 text-gray-600 text-sm mt-4 border-t border-gray-100 pt-4 flex items-center gap-2">
+                   <button onClick={goAdmin} className="block w-full text-left py-2 text-gray-600 text-sm mt-2 border-t border-gray-100 pt-4 flex items-center gap-2">
                      <Settings size={16} />
-                     Administrator
+                     Login Guru
                    </button>
                 )}
              </div>
@@ -323,6 +357,7 @@ const Footer: React.FC<{
       <div className="border-t border-gray-200/50 pt-8 flex flex-col md:flex-row justify-between items-center text-xs text-gray-400">
         <p>&copy; {new Date().getFullYear()} {profile.name}. All rights reserved.</p>
         <div className="flex items-center gap-4 mt-2 md:mt-0">
+          <button onClick={onAdminClick} className="hover:text-blue-500 transition-colors">Admin Login</button>
           <p>Design by erha</p>
         </div>
       </div>
@@ -333,12 +368,31 @@ const Footer: React.FC<{
 // --- VIEWS ---
 
 const LandingView: React.FC<{ 
-  onStart: () => void; 
-  onSelectClass: (id: string) => void;
+  onSelectClass: (classId: string) => void;
+  onAdminLogin: () => void;
   onSelectCategory: (category: ExtraCategory) => void;
   classes: ClassData[];
   extras: ExtraContent[];
-}> = ({ onStart, onSelectClass, onSelectCategory, classes }) => {
+}> = ({ onSelectClass, onAdminLogin, onSelectCategory, classes }) => {
+  
+  const [expandedGrade, setExpandedGrade] = useState<string | null>(null);
+
+  // Group classes by grade
+  const groupedClasses = classes.reduce((acc, curr) => {
+    const grade = curr.gradeLevel;
+    if (!acc[grade]) acc[grade] = [];
+    acc[grade].push(curr);
+    return acc;
+  }, {} as Record<string, ClassData[]>);
+
+  const toggleGrade = (grade: string) => {
+    setExpandedGrade(expandedGrade === grade ? null : grade);
+  };
+
+  const scrollToIntro = () => {
+    document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }} 
@@ -362,23 +416,27 @@ const LandingView: React.FC<{
             transition={{ duration: 0.8 }}
           >
             {/* Widget Area */}
+            <RobotGreeting />
             <PrayerTimesWidget />
 
             <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter mb-8 leading-[1.1] text-gray-900 relative z-10 drop-shadow-sm">
-              Belajar PAI Lebih <br className="hidden md:block" />
+              PAI Digital: <br className="hidden md:block" />
               <span className="relative inline-block mt-2 md:mt-0">
                 <span className="absolute -inset-2 bg-blue-400/20 blur-2xl rounded-full"></span>
-                <span className="text-shimmer relative z-10">Bermakna</span>
+                <span className="text-shimmer relative z-10">Belajar Lebih Bermakna</span>
               </span>
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
-              Jelajahi materi Pendidikan Agama Islam secara interaktif, menyenangkan, dan tanamkan nilai moderasi beragama sejak dini.
+              Portal pembelajaran interaktif untuk siswa dan guru SMPN 3 Pacet. Silakan pilih jenis login di bawah ini.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-              <Button onClick={onStart} className="w-full sm:w-auto text-lg px-8 py-4 shadow-blue-500/25 shadow-2xl hover:scale-105 transform transition-all duration-300 rounded-2xl">
-                Mulai Belajar Sekarang
+              <Button onClick={scrollToIntro} className="w-full sm:w-auto text-lg px-8 py-4 shadow-blue-500/25 shadow-2xl hover:scale-105 transform transition-all duration-300 rounded-2xl flex items-center gap-3">
+                <User size={20}/> Login Siswa
+              </Button>
+              <Button onClick={onAdminLogin} variant="secondary" className="w-full sm:w-auto text-lg px-8 py-4 shadow-2xl hover:scale-105 transform transition-all duration-300 rounded-2xl flex items-center gap-3">
+                <UserCog size={20}/> Login Guru
               </Button>
             </div>
           </motion.div>
@@ -406,41 +464,67 @@ const LandingView: React.FC<{
       </section>
 
       {/* Class Selection Section */}
-      <section id="pilih-kelas" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="login-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionTitle 
-          title="Pilih Kelasmu" 
-          subtitle="Login dengan memilih kelas dan namamu." 
+          title="Login Siswa: Pilih Kelasmu" 
+          subtitle="Klik pada kelas yang sesuai untuk masuk ke halaman absensi dan materi." 
           center 
         />
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {classes.map((cls) => (
-            <Card 
-              key={cls.id} 
-              onClick={() => onSelectClass(cls.id)}
-              className="group relative overflow-hidden h-full border border-white/40 bg-white/40 backdrop-blur-xl hover:bg-white/60 transition-all duration-300 pt-12"
-            >
-              <TrafficLights />
-              <div className={`absolute -right-10 -top-10 w-48 h-48 bg-gradient-to-br from-${cls.color}-100 to-${cls.color}-50 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700 blur-3xl`}></div>
-              
-              <div className="relative z-10 flex flex-col h-full">
-                <div className={`w-16 h-16 bg-gradient-to-br from-${cls.color}-50 to-white rounded-2xl flex items-center justify-center text-${cls.color}-600 mb-6 border border-${cls.color}-100 shadow-sm`}>
-                  {cls.icon === 'book-open' && <BookOpen size={28} />}
-                  {cls.icon === 'compass' && <Layout size={28} />}
-                  {cls.icon === 'star' && <Brain size={28} />}
-                </div>
-                
-                <h3 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">{cls.name}</h3>
-                <p className="text-gray-500 mb-8 leading-relaxed">Akses materi lengkap untuk semester ganjil dan genap.</p>
-                
-                <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-200/30">
-                   <span className="text-sm font-semibold text-gray-400 uppercase tracking-wide">Login Kelas</span>
-                   <div className={`w-10 h-10 rounded-full bg-white/50 border border-white flex items-center justify-center group-hover:bg-${cls.color}-500 group-hover:text-white group-hover:border-transparent transition-all shadow-sm`}>
-                     <ChevronRight size={20} />
+        <div className="max-w-3xl mx-auto space-y-4">
+          {['7', '8', '9'].map((grade) => (
+            <div key={grade} className="border border-gray-200 rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+              <button 
+                onClick={() => toggleGrade(grade)}
+                className="w-full flex items-center justify-between p-5 bg-white text-left transition-colors hover:bg-gray-50"
+              >
+                <div className="flex items-center gap-4">
+                   <div className={`p-2 rounded-xl ${
+                     grade === '7' ? 'bg-blue-100 text-blue-600' : 
+                     grade === '8' ? 'bg-emerald-100 text-emerald-600' : 
+                     'bg-amber-100 text-amber-600'
+                   }`}>
+                     {grade === '7' && <BookOpen size={20}/>}
+                     {grade === '8' && <Layout size={20}/>}
+                     {grade === '9' && <Brain size={20}/>}
                    </div>
+                   <span className="text-lg font-bold text-gray-800">
+                     Kelas {grade === '7' ? 'VII (Tujuh)' : grade === '8' ? 'VIII (Delapan)' : 'IX (Sembilan)'}
+                   </span>
                 </div>
-              </div>
-            </Card>
+                <ChevronDown 
+                  size={20} 
+                  className={`text-gray-400 transition-transform duration-300 ${expandedGrade === grade ? 'rotate-180' : ''}`}
+                />
+              </button>
+              
+              <AnimatePresence>
+                {expandedGrade === grade && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="bg-gray-50 border-t border-gray-100"
+                  >
+                     <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {groupedClasses[grade]?.map(cls => (
+                           <button 
+                             key={cls.id}
+                             onClick={() => onSelectClass(cls.id)}
+                             className={`py-3 px-4 bg-white border border-gray-200 rounded-xl font-bold text-gray-700 transition-all shadow-sm hover:text-white ${
+                                 grade === '7' ? 'hover:bg-blue-600 hover:border-blue-600' :
+                                 grade === '8' ? 'hover:bg-emerald-600 hover:border-emerald-600' :
+                                 'hover:bg-amber-500 hover:border-amber-500'
+                             }`}
+                           >
+                              {cls.name.replace('Kelas ', '')}
+                           </button>
+                        ))}
+                     </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           ))}
         </div>
       </section>
@@ -513,63 +597,82 @@ const LandingView: React.FC<{
 };
 
 const StudentLoginView: React.FC<{
-  targetClassId: string;
+  initialClassId?: string | null;
   classes: ClassData[];
   students: Student[];
-  onLoginSuccess: (student: Student) => void;
+  onLoginSuccess: (student: Student, classId: string) => void;
   onBack: () => void;
-}> = ({ targetClassId, classes, students, onLoginSuccess, onBack }) => {
-  const [search, setSearch] = useState('');
-  const targetClass = classes.find(c => c.id === targetClassId);
-  const classStudents = students.filter(s => s.classId === targetClassId);
-  const filteredStudents = classStudents.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) || 
-    s.nis.includes(search)
-  );
+}> = ({ initialClassId, classes, students, onLoginSuccess, onBack }) => {
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(initialClassId || null);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
+
+  // If initialClassId is provided, we skip the class selection step and go straight to name search
+  useEffect(() => {
+      if (initialClassId) setSelectedClassId(initialClassId);
+  }, [initialClassId]);
+
+  // Filter students for selected class
+  const classStudents = selectedClassId 
+    ? students.filter(s => s.classId === selectedClassId) 
+    : [];
+    
+  const selectedClassName = classes.find(c => c.id === selectedClassId)?.name || 'Kelas';
 
   return (
     <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="max-w-4xl mx-auto px-4 py-12">
-      <Button variant="secondary" onClick={onBack} className="mb-8"><ArrowLeft size={18}/> Kembali</Button>
+      <Button variant="secondary" onClick={onBack} className="mb-8"><ArrowLeft size={18}/> Kembali ke Menu Utama</Button>
       <Card className="p-8 md:p-12">
         <div className="text-center mb-8">
-          <div className={`w-20 h-20 mx-auto bg-${targetClass?.color}-100 rounded-full flex items-center justify-center text-${targetClass?.color}-600 mb-4`}>
+          <div className="w-20 h-20 mx-auto bg-blue-100 rounded-full flex items-center justify-center text-blue-600 mb-4">
              <Users size={32} />
           </div>
-          <h2 className="text-3xl font-bold text-gray-900">Login {targetClass?.name}</h2>
-          <p className="text-gray-500 mt-2">Cari namamu atau masukkan NIS untuk masuk.</p>
+          <h2 className="text-3xl font-bold text-gray-900">Login {selectedClassName}</h2>
+          <p className="text-gray-500 mt-2">Silakan pilih namamu dari daftar di bawah ini.</p>
         </div>
 
-        <Input 
-           placeholder="Cari Nama / NIS..." 
-           value={search} 
-           onChange={e => setSearch(e.target.value)}
-           className="text-lg py-4 mb-8"
-           autoFocus
-        />
+        {/* Step 2: Student Selection (Only if class is selected) */}
+        <AnimatePresence>
+            {selectedClassId ? (
+                <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="border-t pt-8"
+                >
+                    <div className="w-full max-w-md mx-auto space-y-6">
+                        <div className="relative">
+                            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20}/>
+                            <select
+                                className="w-full pl-12 pr-10 py-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer text-lg"
+                                value={selectedStudentId}
+                                onChange={(e) => setSelectedStudentId(e.target.value)}
+                            >
+                                <option value="">Pilih Nama Siswa...</option>
+                                {classStudents.map(s => (
+                                    <option key={s.id} value={s.id}>
+                                        {s.name} ({s.nis})
+                                    </option>
+                                ))}
+                            </select>
+                            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20}/>
+                        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2">
-           {filteredStudents.length > 0 ? (
-             filteredStudents.map(student => (
-               <button 
-                 key={student.id}
-                 onClick={() => onLoginSuccess(student)}
-                 className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 hover:border-blue-500 hover:bg-blue-50 transition-all text-left group"
-               >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold ${student.gender === 'L' ? 'bg-blue-100 text-blue-600' : 'bg-pink-100 text-pink-600'}`}>
-                    {student.name.charAt(0)}
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-gray-900 group-hover:text-blue-700">{student.name}</h4>
-                    <p className="text-sm text-gray-500">NIS: {student.nis}</p>
-                  </div>
-               </button>
-             ))
-           ) : (
-             <div className="col-span-full text-center py-8 text-gray-400">
-               Siswa tidak ditemukan.
-             </div>
-           )}
-        </div>
+                        <Button
+                            className="w-full py-4 text-lg shadow-blue-500/20"
+                            disabled={!selectedStudentId}
+                            onClick={() => {
+                                const s = classStudents.find(st => st.id === selectedStudentId);
+                                if(s) onLoginSuccess(s, selectedClassId);
+                            }}
+                        >
+                            Masuk Kelas <ChevronRight size={20}/>
+                        </Button>
+                    </div>
+                </motion.div>
+            ) : (
+               <div className="text-center text-red-500">Error: Kelas belum dipilih.</div>
+            )}
+        </AnimatePresence>
       </Card>
     </motion.div>
   );
@@ -587,24 +690,12 @@ const ClassDetailView: React.FC<{
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
          <div>
-            <Button variant="secondary" onClick={onBack} className="mb-4 text-sm py-2 px-4"><ArrowLeft size={16}/> Ganti Kelas</Button>
+            <Button variant="secondary" onClick={onBack} className="mb-4 text-sm py-2 px-4"><ArrowLeft size={16}/> Ganti Akun / Kelas</Button>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
                <span className={`w-3 h-8 bg-${classData.color}-500 rounded-full`}></span>
                Materi {classData.name}
             </h1>
             <p className="text-gray-500 mt-1 ml-6">Selamat datang, <span className="font-bold text-gray-800">{student?.name}</span>!</p>
-         </div>
-         <div className="flex gap-2">
-            {classData.schedule && (
-              <button onClick={() => window.open('#', '_blank')} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
-                <CalendarRange size={16} className="text-blue-500"/> Jadwal
-              </button>
-            )}
-            {classData.grades && (
-              <button onClick={() => window.open('#', '_blank')} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium hover:bg-gray-50">
-                <GraduationCap size={16} className="text-green-500"/> Nilai
-              </button>
-            )}
          </div>
       </div>
 
@@ -620,7 +711,19 @@ const ClassDetailView: React.FC<{
          ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Jadwal Pelajaran - Placed below semester buttons as requested */}
+      {classData.schedule && (
+         <Card className="mb-8 border-l-4 border-l-blue-500 bg-blue-50/50">
+            <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2"><CalendarRange size={18}/> Jadwal Pelajaran {classData.name}</h3>
+            {classData.schedule.type === 'html' ? (
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: classData.schedule.content || '' }} />
+            ) : (
+                <a href={classData.schedule.url} target="_blank" className="text-blue-600 hover:underline">Lihat Jadwal</a>
+            )}
+         </Card>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
          {classData.semesters.find(s => s.id === activeSem)?.chapters.map((chapter) => (
             <Card key={chapter.id} onClick={() => onSelectChapter(chapter.id)} className="h-full flex flex-col cursor-pointer group hover:border-blue-300">
                <div className="flex justify-between items-start mb-4">
@@ -643,42 +746,57 @@ const ClassDetailView: React.FC<{
          ))}
       </div>
 
-      {/* Bank Soal Section */}
-      <div className="mt-12">
-         <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-3 text-xl border-b border-blue-200/50 pb-4">
-               <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
-                  <FileQuestion size={24}/> 
+      {/* Monitoring Nilai - Placed above Bank Soal */}
+      {classData.grades && (
+        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-100 mb-6">
+            <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-3 text-xl border-b border-green-200/50 pb-4">
+               <div className="p-2 bg-green-100 rounded-lg text-green-600">
+                  <GraduationCap size={24}/> 
                </div>
-               Bank Soal (STS & SAS)
+               Rekapitulasi Nilai
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               {classData.semesters.find(s => s.id === activeSem)?.exams?.map((exam) => (
-                  <a 
-                    key={exam.id} 
-                    href={exam.url || '#'} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="flex items-center gap-4 p-4 bg-white border border-blue-100/50 rounded-xl hover:shadow-md hover:border-blue-400 transition-all group"
-                  >
-                     <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
-                        <FileText size={20} />
-                     </div>
-                     <div>
-                        <h4 className="font-bold text-gray-900">{exam.title}</h4>
-                        <p className="text-xs text-gray-500">Google Form / Quiz</p>
-                     </div>
-                     <ExternalLink size={16} className="ml-auto text-gray-400"/>
-                  </a>
-               ))}
-               {(!classData.semesters.find(s => s.id === activeSem)?.exams || classData.semesters.find(s => s.id === activeSem)?.exams?.length === 0) && (
-                  <div className="col-span-full text-gray-400 italic text-sm text-center py-4">
-                     Belum ada soal evaluasi untuk semester ini.
-                  </div>
-               )}
+            {classData.grades.type === 'html' ? (
+                <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: classData.grades.content || '' }} />
+            ) : (
+                <a href={classData.grades.url} target="_blank" className="text-green-600 hover:underline flex items-center gap-2"><ExternalLink size={16}/> Lihat Rekap Nilai</a>
+            )}
+        </Card>
+      )}
+
+      {/* Bank Soal Section */}
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+        <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-3 text-xl border-b border-blue-200/50 pb-4">
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-600">
+                <FileQuestion size={24}/> 
             </div>
-         </Card>
-      </div>
+            Bank Soal (STS & SAS)
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {classData.semesters.find(s => s.id === activeSem)?.exams?.map((exam) => (
+                <a 
+                key={exam.id} 
+                href={exam.url || '#'} 
+                target="_blank" 
+                rel="noreferrer"
+                className="flex items-center gap-4 p-4 bg-white border border-blue-100/50 rounded-xl hover:shadow-md hover:border-blue-400 transition-all group"
+                >
+                    <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center text-orange-600 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                    <FileText size={20} />
+                    </div>
+                    <div>
+                    <h4 className="font-bold text-gray-900">{exam.title}</h4>
+                    <p className="text-xs text-gray-500">Google Form / Quiz</p>
+                    </div>
+                    <ExternalLink size={16} className="ml-auto text-gray-400"/>
+                </a>
+            ))}
+            {(!classData.semesters.find(s => s.id === activeSem)?.exams || classData.semesters.find(s => s.id === activeSem)?.exams?.length === 0) && (
+                <div className="col-span-full text-gray-400 italic text-sm text-center py-4">
+                    Belum ada soal evaluasi untuk semester ini.
+                </div>
+            )}
+        </div>
+      </Card>
     </motion.div>
   );
 };
@@ -726,19 +844,26 @@ const ChapterContentView: React.FC<{
               
               {activeTab === 'materi' && (
                 <div className="prose prose-lg max-w-none prose-blue">
-                   {chapter.contents.map(section => (
+                   {chapter.contents && chapter.contents.length > 0 ? chapter.contents.map(section => (
                      <div key={section.id} className="mb-8">
                         {section.title && <h3 className="text-xl font-bold mb-3 text-gray-800">{section.title}</h3>}
-                        <div dangerouslySetInnerHTML={{ __html: section.content }} />
+                        {section.type === 'link' ? (
+                            <a href={section.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 font-medium">
+                                <LinkIcon size={18}/> Buka Materi: {section.title}
+                            </a>
+                        ) : (
+                            <div dangerouslySetInnerHTML={{ __html: section.content }} />
+                        )}
                      </div>
-                   ))}
-                   {chapter.contents.length === 0 && <p className="text-gray-500 italic">Materi belum tersedia.</p>}
+                   )) : (
+                     <p className="text-gray-500 italic">Materi belum tersedia.</p>
+                   )}
                 </div>
               )}
 
               {activeTab === 'video' && (
                  <div className="space-y-8">
-                    {chapter.videos.length > 0 ? chapter.videos.map(video => (
+                    {chapter.videos && chapter.videos.length > 0 ? chapter.videos.map(video => (
                       <div key={video.id}>
                          <h3 className="font-bold text-lg mb-2">{video.title}</h3>
                          {video.type === 'link' && video.url ? (
@@ -763,7 +888,7 @@ const ChapterContentView: React.FC<{
 
               {activeTab === 'kuis' && (
                  <div className="space-y-4">
-                    {chapter.quizzes.length > 0 ? chapter.quizzes.map(quiz => (
+                    {chapter.quizzes && chapter.quizzes.length > 0 ? chapter.quizzes.map(quiz => (
                        <div key={quiz.id} className="p-6 border border-gray-200 rounded-xl bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
                           <div className="flex items-center gap-4">
                              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600">
@@ -810,7 +935,7 @@ const AdminLoginView: React.FC<{ onLogin: () => void; onBack: () => void }> = ({
   return (
     <div className="flex items-center justify-center min-h-[60vh]">
       <Card className="w-full max-w-md p-8">
-        <h2 className="text-2xl font-bold text-center mb-6">Login Administrator</h2>
+        <h2 className="text-2xl font-bold text-center mb-6">Login Guru / Admin</h2>
         <form onSubmit={handleSubmit}>
           <Input 
             type="password" 
@@ -830,6 +955,175 @@ const AdminLoginView: React.FC<{ onLogin: () => void; onBack: () => void }> = ({
   );
 };
 
+// --- ADMIN SUB COMPONENTS ---
+
+const AdminContentEditor: React.FC<{
+   chapter: Chapter;
+   onSave: (updatedChapter: Chapter) => void;
+}> = ({ chapter, onSave }) => {
+   const [localChapter, setLocalChapter] = useState<Chapter>(chapter);
+   const [activeTab, setActiveTab] = useState<'materi' | 'video' | 'kuis'>('materi');
+   const [expandedItem, setExpandedItem] = useState<string | null>(null);
+
+   const [editingSection, setEditingSection] = useState<{
+      type: 'materi' | 'video' | 'kuis';
+      item: ContentSection | ResourceItem;
+      isNew: boolean;
+   } | null>(null);
+
+   useEffect(() => { setLocalChapter(chapter); }, [chapter]);
+
+   const handleDelete = (type: 'materi' | 'video' | 'kuis', id: string) => {
+      if (!confirm('Hapus item ini?')) return;
+      const updated = { ...localChapter };
+      if (type === 'materi') updated.contents = updated.contents.filter(c => c.id !== id);
+      if (type === 'video') updated.videos = updated.videos.filter(v => v.id !== id);
+      if (type === 'kuis') updated.quizzes = updated.quizzes.filter(q => q.id !== id);
+      setLocalChapter(updated);
+      onSave(updated);
+   };
+
+   const handleEdit = (type: 'materi' | 'video' | 'kuis', item: any) => {
+      setEditingSection({ type, item: { ...item }, isNew: false });
+   };
+
+   const handleAdd = (type: 'materi' | 'video' | 'kuis') => {
+      const id = Date.now().toString();
+      // Default type based on category
+      const newItem = { id, title: 'Judul Baru', type: 'html', content: '', url: '' };
+      setEditingSection({ type, item: newItem as any, isNew: true });
+   };
+
+   const saveSection = () => {
+      if (!editingSection) return;
+      const { type, item, isNew } = editingSection;
+      const updated = { ...localChapter };
+
+      if (type === 'materi') {
+         if (isNew) updated.contents = [...(updated.contents || []), item as ContentSection];
+         else updated.contents = updated.contents.map(c => c.id === item.id ? item as ContentSection : c);
+      } else if (type === 'video') {
+         if (isNew) updated.videos = [...(updated.videos || []), item as ResourceItem];
+         else updated.videos = updated.videos.map(v => v.id === item.id ? item as ResourceItem : v);
+      } else if (type === 'kuis') {
+         if (isNew) updated.quizzes = [...(updated.quizzes || []), item as ResourceItem];
+         else updated.quizzes = updated.quizzes.map(q => q.id === item.id ? item as ResourceItem : q);
+      }
+
+      setLocalChapter(updated);
+      onSave(updated);
+      setEditingSection(null);
+   };
+
+   const toggleExpand = (id: string) => {
+       setExpandedItem(expandedItem === id ? null : id);
+   }
+
+   return (
+      <div className="space-y-6">
+         {/* Main Info */}
+         <div className="space-y-4 border-b pb-6">
+            <h3 className="font-bold text-gray-800">Informasi Umum Bab</h3>
+            <Input label="Judul Bab" value={localChapter.title} onChange={e => {
+               const updated = { ...localChapter, title: e.target.value };
+               setLocalChapter(updated);
+            }} onBlur={() => onSave(localChapter)} />
+            <TextArea label="Deskripsi" value={localChapter.description} onChange={e => {
+               const updated = { ...localChapter, description: e.target.value };
+               setLocalChapter(updated);
+            }} onBlur={() => onSave(localChapter)} />
+         </div>
+
+         {/* Editor Modal */}
+         {editingSection && (
+            <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4">
+               <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl overflow-y-auto max-h-[90vh]">
+                  <h3 className="font-bold text-lg mb-4">{editingSection.isNew ? 'Tambah' : 'Edit'} {editingSection.type === 'materi' ? 'Materi' : editingSection.type === 'video' ? 'Video' : 'Kuis'}</h3>
+                  
+                  <Input label="Judul" value={editingSection.item.title} onChange={e => setEditingSection({...editingSection, item: {...editingSection.item, title: e.target.value}})} />
+                  
+                  <div className="flex gap-4 mb-4">
+                     <label className="flex items-center gap-2"><input type="radio" checked={(editingSection.item as ResourceItem).type === 'link'} onChange={() => setEditingSection({...editingSection, item: {...editingSection.item, type: 'link'}})} /> Link URL</label>
+                     <label className="flex items-center gap-2"><input type="radio" checked={(editingSection.item as ResourceItem).type === 'html' || !(editingSection.item as ResourceItem).type} onChange={() => setEditingSection({...editingSection, item: {...editingSection.item, type: 'html'}})} /> HTML Code</label>
+                  </div>
+
+                  {(editingSection.item as ResourceItem).type === 'link' ? (
+                     <Input label="URL Link" value={(editingSection.item as ResourceItem).url || ''} onChange={e => setEditingSection({...editingSection, item: {...editingSection.item, url: e.target.value}})} />
+                  ) : (
+                     <TextArea label="Konten HTML" value={editingSection.item.content || ''} onChange={e => setEditingSection({...editingSection, item: {...editingSection.item, content: e.target.value}})} className="min-h-[200px]" />
+                  )}
+
+                  <div className="flex justify-end gap-2 mt-4">
+                     <Button variant="secondary" onClick={() => setEditingSection(null)}>Batal</Button>
+                     <Button onClick={saveSection}>Simpan</Button>
+                  </div>
+               </div>
+            </div>
+         )}
+
+         {/* Tabbed Content Editor */}
+         <div>
+            <div className="flex border-b mb-4">
+               {(['materi', 'video', 'kuis'] as const).map(t => (
+                   <button
+                     key={t}
+                     onClick={() => setActiveTab(t)}
+                     className={`px-4 py-2 font-medium capitalize border-b-2 transition-colors ${activeTab === t ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+                   >
+                       {t}
+                   </button>
+               ))}
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 min-h-[300px]">
+               <div className="flex justify-between items-center mb-4">
+                  <h4 className="font-bold text-gray-800 capitalize flex items-center gap-2">Daftar {activeTab}</h4>
+                  <Button onClick={() => handleAdd(activeTab)} className="py-1 px-3 text-sm flex items-center gap-1"><Plus size={14}/> Tambah</Button>
+               </div>
+               
+               <div className="space-y-3">
+                  {((activeTab === 'materi' ? localChapter.contents : activeTab === 'video' ? localChapter.videos : localChapter.quizzes) || []).map((item: any) => (
+                     <div key={item.id} className="bg-white rounded-lg border shadow-sm overflow-hidden">
+                        <div 
+                           className="flex justify-between items-center p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                           onClick={() => toggleExpand(item.id)}
+                        >
+                           <span className="font-medium">{item.title}</span>
+                           <div className="flex items-center gap-2">
+                               <span className={`text-xs px-2 py-0.5 rounded ${item.type === 'link' ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700'}`}>
+                                   {item.type === 'link' ? 'LINK' : 'HTML'}
+                               </span>
+                               <ChevronDown size={16} className={`transform transition-transform ${expandedItem === item.id ? 'rotate-180' : ''}`}/>
+                           </div>
+                        </div>
+                        {expandedItem === item.id && (
+                           <div className="p-4 border-t bg-gray-50/50 text-sm">
+                               <div className="mb-3">
+                                   <strong>Konten:</strong>
+                                   {item.type === 'link' ? (
+                                       <a href={item.url} target="_blank" className="text-blue-600 block truncate mt-1">{item.url}</a>
+                                   ) : (
+                                       <div className="mt-1 p-2 bg-gray-100 rounded border font-mono text-xs max-h-32 overflow-y-auto whitespace-pre-wrap">{item.content}</div>
+                                   )}
+                               </div>
+                               <div className="flex justify-end gap-2">
+                                   <button onClick={() => handleEdit(activeTab, item)} className="text-blue-600 hover:underline flex items-center gap-1"><Edit3 size={14}/> Edit</button>
+                                   <button onClick={() => handleDelete(activeTab, item.id)} className="text-red-600 hover:underline flex items-center gap-1"><Trash2 size={14}/> Hapus</button>
+                               </div>
+                           </div>
+                        )}
+                     </div>
+                  ))}
+                  {((activeTab === 'materi' ? localChapter.contents : activeTab === 'video' ? localChapter.videos : localChapter.quizzes) || []).length === 0 && (
+                      <div className="text-center text-gray-400 py-8 italic">Belum ada item {activeTab}.</div>
+                  )}
+               </div>
+            </div>
+         </div>
+      </div>
+   );
+};
+
 const AdminDashboardView: React.FC<{
   classes: ClassData[];
   schoolProfile: SchoolProfile;
@@ -842,7 +1136,7 @@ const AdminDashboardView: React.FC<{
   onUpdateExtras: (extras: ExtraContent[]) => void;
   onLogout: () => void;
 }> = ({ classes, schoolProfile, students, extras, onUpdateChapter, onUpdateClass, onUpdateProfile, onUpdateStudents, onUpdateExtras, onLogout }) => {
-  const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras'>('profile');
+  const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras' | 'schedule'>('profile');
 
   // Profile
   const [profileForm, setProfileForm] = useState(schoolProfile);
@@ -852,9 +1146,10 @@ const AdminDashboardView: React.FC<{
   };
 
   // Student
-  const [studentForm, setStudentForm] = useState<Partial<Student>>({ classId: '7', gender: 'L' });
+  const [studentForm, setStudentForm] = useState<Partial<Student>>({ classId: '7A', gender: 'L' });
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [filterClass, setFilterClass] = useState<string>('all');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleStudentSave = () => {
     if (!studentForm.name || !studentForm.nis) return alert("Nama dan NIS wajib diisi");
@@ -862,7 +1157,7 @@ const AdminDashboardView: React.FC<{
         id: editingStudentId || Date.now().toString(),
         name: studentForm.name,
         nis: studentForm.nis,
-        classId: studentForm.classId || '7',
+        classId: studentForm.classId || '7A',
         gender: studentForm.gender || 'L'
     };
 
@@ -872,7 +1167,7 @@ const AdminDashboardView: React.FC<{
     } else {
       onUpdateStudents([...students, studentData]);
     }
-    setStudentForm({ classId: '7', gender: 'L', name: '', nis: '' });
+    setStudentForm({ classId: '7A', gender: 'L', name: '', nis: '' });
   };
   
   const handleStudentEdit = (s: Student) => {
@@ -884,6 +1179,51 @@ const AdminDashboardView: React.FC<{
     if (confirm('Hapus siswa ini?')) {
       onUpdateStudents(students.filter(s => s.id !== id));
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+  
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+          const bstr = evt.target?.result;
+          const wb = window.XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = window.XLSX.utils.sheet_to_json(ws);
+          
+          // Expected format columns: NIS, Nama Lengkap, Kelas, Gender
+          const newStudents: Student[] = data.map((row: any) => {
+               const nis = row['NIS'] || row['nis'] || Date.now().toString();
+               const name = row['Nama Lengkap'] || row['Nama'] || 'Siswa Baru';
+               const clsRaw = row['Kelas'] || 'VII A';
+               const genderRaw = row['Gender'] || 'L';
+               
+               // Attempt to map class name
+               let classId = '7A';
+               // Simple parser for Roman numerals to ID
+               const romanMap: {[key: string]: string} = { 'VII': '7', 'VIII': '8', 'IX': '9' };
+               const [roman, suffix] = clsRaw.toString().split(' ');
+               if (romanMap[roman]) {
+                  classId = `${romanMap[roman]}${suffix || ''}`;
+               }
+               
+               return {
+                   id: nis.toString(),
+                   nis: nis.toString(),
+                   name: name,
+                   classId: classId,
+                   gender: genderRaw === 'L' ? 'L' : 'P'
+               };
+          });
+  
+          if (confirm(`Ditemukan ${newStudents.length} data siswa dari Excel. Tambahkan ke database?`)) {
+              onUpdateStudents([...students, ...newStudents]);
+          }
+          if (fileInputRef.current) fileInputRef.current.value = '';
+      };
+      reader.readAsBinaryString(file);
   };
 
   const filteredStudents = students.filter(s => filterClass === 'all' || s.classId === filterClass);
@@ -922,16 +1262,26 @@ const AdminDashboardView: React.FC<{
   };
 
   // Content
-  const [selClassId, setSelClassId] = useState<string>('7');
+  const [selClassId, setSelClassId] = useState<string>('7A');
   const [selSemId, setSelSemId] = useState<string>('ganjil');
-  const [selChapId, setSelChapId] = useState<string>('7-1');
-  const [chapForm, setChapForm] = useState<Partial<Chapter>>({});
+  const [selChapId, setSelChapId] = useState<string>('7-ganjil-1');
+  const [chapForm, setChapForm] = useState<Chapter | null>(null);
   
   const [resourceEdit, setResourceEdit] = useState<{
     type: 'schedule' | 'grades' | 'exam', 
     item: ResourceItem, 
     parentId?: string
   } | null>(null);
+
+  // Update default chapter selection when class changes
+  useEffect(() => {
+     const cls = classes.find(c => c.id === selClassId);
+     if (cls) {
+         // Default to first chapter of selected semester
+         const firstChap = cls.semesters.find(s => s.id === selSemId)?.chapters[0];
+         if (firstChap) setSelChapId(firstChap.id);
+     }
+  }, [selClassId, selSemId, classes]);
 
   useEffect(() => {
     const cls = classes.find(c => c.id === selClassId);
@@ -942,11 +1292,8 @@ const AdminDashboardView: React.FC<{
     }
   }, [selClassId, selSemId, selChapId, classes]);
 
-  const handleChapterSave = () => {
-    if (selChapId && chapForm) {
-      onUpdateChapter(selClassId, selSemId, selChapId, chapForm);
-      alert('Materi Bab berhasil disimpan!');
-    }
+  const handleChapterUpdate = (updatedChapter: Chapter) => {
+     onUpdateChapter(selClassId, selSemId, selChapId, updatedChapter);
   };
 
   const handleResourceSave = () => {
@@ -980,8 +1327,31 @@ const AdminDashboardView: React.FC<{
     alert('Perubahan berhasil disimpan!');
   };
 
+  const handleExamDelete = (examId: string) => {
+      if(!confirm("Hapus soal evaluasi ini?")) return;
+      const cls = classes.find(c => c.id === selClassId);
+      if (!cls) return;
+      
+      const semIdx = cls.semesters.findIndex(s => s.id === selSemId);
+      if (semIdx > -1) {
+          const sem = { ...cls.semesters[semIdx] };
+          sem.exams = (sem.exams || []).filter(e => e.id !== examId);
+          const updatedClass = { ...cls };
+          updatedClass.semesters[semIdx] = sem;
+          onUpdateClass(updatedClass);
+      }
+  };
+
   const currentClass = classes.find(c => c.id === selClassId);
   const currentSemester = currentClass?.semesters.find(s => s.id === selSemId);
+
+  const adminTabs = [
+    { id: 'profile', label: 'Profil Sekolah', icon: <School size={18}/> },
+    { id: 'content', label: 'Manajemen Materi', icon: <BookOpen size={18}/> },
+    { id: 'schedule', label: 'Jadwal & Nilai', icon: <CalendarRange size={18}/> },
+    { id: 'students', label: 'Data Siswa', icon: <Users size={18}/> },
+    { id: 'extras', label: 'Pojok Literasi', icon: <Sparkles size={18}/> },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -997,19 +1367,17 @@ const AdminDashboardView: React.FC<{
           </Button>
        </div>
 
-       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row gap-8">
-          <div className="w-full md:w-64 flex-shrink-0 space-y-2">
-             {[
-               { id: 'profile', label: 'Profil Sekolah', icon: <School size={18}/> },
-               { id: 'content', label: 'Manajemen Materi', icon: <BookOpen size={18}/> },
-               { id: 'students', label: 'Data Siswa', icon: <Users size={18}/> },
-               { id: 'extras', label: 'Pojok Literasi', icon: <Sparkles size={18}/> },
-             ].map(item => (
+       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Top Horizontal Tabs */}
+          <div className="flex overflow-x-auto pb-4 gap-2 mb-6 hide-scrollbar border-b border-gray-200 sticky top-20 bg-gray-50/95 backdrop-blur z-40 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+             {adminTabs.map(item => (
                <button
                  key={item.id}
                  onClick={() => setTab(item.id as any)}
-                 className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 font-medium transition-all ${
-                   tab === item.id ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100'
+                 className={`flex-shrink-0 px-6 py-3 rounded-xl flex items-center gap-2 font-bold transition-all ${
+                   tab === item.id 
+                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' 
+                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                  }`}
                >
                  {item.icon} {item.label}
@@ -1017,7 +1385,7 @@ const AdminDashboardView: React.FC<{
              ))}
           </div>
 
-          <div className="flex-grow">
+          <div className="flex-grow min-h-[600px]">
              {tab === 'profile' && (
                <Card>
                   <SectionTitle title="Edit Profil Sekolah" />
@@ -1040,6 +1408,18 @@ const AdminDashboardView: React.FC<{
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                      <SectionTitle title="Manajemen Data Siswa" subtitle={`Total: ${students.length} Siswa Terdaftar`} />
                      <div className="flex items-center gap-2">
+                        <input 
+                           type="file" 
+                           accept=".xlsx, .xls" 
+                           ref={fileInputRef}
+                           onChange={handleFileUpload} 
+                           className="hidden" 
+                           id="excel-upload"
+                        />
+                        <label htmlFor="excel-upload" className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg cursor-pointer hover:bg-green-200 transition-colors text-sm font-bold">
+                           <Upload size={16}/> Import Excel
+                        </label>
+                        <div className="w-px h-6 bg-gray-300 mx-2"></div>
                         <Filter size={16} className="text-gray-500"/>
                         <select 
                            className="p-2 border rounded-lg text-sm bg-white"
@@ -1047,9 +1427,10 @@ const AdminDashboardView: React.FC<{
                            onChange={(e) => setFilterClass(e.target.value)}
                         >
                            <option value="all">Semua Kelas</option>
-                           <option value="7">Kelas 7</option>
-                           <option value="8">Kelas 8</option>
-                           <option value="9">Kelas 9</option>
+                           {classes
+                             .sort((a, b) => a.id.localeCompare(b.id))
+                             .map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                           }
                         </select>
                      </div>
                   </div>
@@ -1065,16 +1446,14 @@ const AdminDashboardView: React.FC<{
                               <option value="L">Laki-laki</option>
                               <option value="P">Perempuan</option>
                            </select>
-                           <select className="p-3 rounded-xl border border-gray-300 bg-white" value={studentForm.classId || '7'} onChange={e => setStudentForm({...studentForm, classId: e.target.value})}>
-                              <option value="7">Kelas 7</option>
-                              <option value="8">Kelas 8</option>
-                              <option value="9">Kelas 9</option>
+                           <select className="p-3 rounded-xl border border-gray-300 bg-white" value={studentForm.classId || '7A'} onChange={e => setStudentForm({...studentForm, classId: e.target.value})}>
+                              {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                            </select>
                         </div>
                         <Button onClick={handleStudentSave} className="w-full text-sm py-2">
                            {editingStudentId ? 'Simpan Perubahan' : 'Tambah Siswa'}
                         </Button>
-                        {editingStudentId && <button onClick={() => {setEditingStudentId(null); setStudentForm({ classId: '7', gender: 'L', name: '', nis: '' })}} className="text-xs text-red-500 mt-2 text-center w-full block">Batal Edit</button>}
+                        {editingStudentId && <button onClick={() => {setEditingStudentId(null); setStudentForm({ classId: '7A', gender: 'L', name: '', nis: '' })}} className="text-xs text-red-500 mt-2 text-center w-full block">Batal Edit</button>}
                      </div>
                   </div>
 
@@ -1108,6 +1487,97 @@ const AdminDashboardView: React.FC<{
                </Card>
              )}
 
+             {tab === 'schedule' && (
+                <Card>
+                    <SectionTitle title="Pengaturan Jadwal & Nilai" subtitle="Kelola jadwal pelajaran dan rekap nilai per kelas." />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 className="font-bold mb-4">Pilih Kelas</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
+                                {classes.map(c => (
+                                    <button
+                                        key={c.id}
+                                        onClick={() => setSelClassId(c.id)}
+                                        className={`p-3 rounded-lg border text-sm font-bold transition-all ${selClassId === c.id ? `bg-${c.color}-100 border-${c.color}-500 text-${c.color}-800` : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                                    >
+                                        {c.name}
+                                    </button>
+                                ))}
+                            </div>
+                            
+                            <div className="space-y-4">
+                                <div 
+                                    onClick={() => setResourceEdit({ type: 'schedule', item: currentClass?.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'html', content: '' } })} 
+                                    className="p-4 rounded-xl bg-blue-50 border border-blue-100 hover:bg-blue-100 cursor-pointer flex items-center justify-between group transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-blue-200 rounded-lg text-blue-700"><CalendarRange size={24}/></div>
+                                        <div>
+                                            <h4 className="font-bold text-blue-900">Jadwal Pelajaran</h4>
+                                            <p className="text-sm text-blue-600">{currentClass?.name}</p>
+                                        </div>
+                                    </div>
+                                    <Edit3 className="text-blue-400 group-hover:text-blue-600" size={20}/>
+                                </div>
+
+                                <div 
+                                    onClick={() => setResourceEdit({ type: 'grades', item: currentClass?.grades || { id: 'grd', title: 'Monitoring Nilai', type: 'html', content: '' } })} 
+                                    className="p-4 rounded-xl bg-green-50 border border-green-100 hover:bg-green-100 cursor-pointer flex items-center justify-between group transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-green-200 rounded-lg text-green-700"><GraduationCap size={24}/></div>
+                                        <div>
+                                            <h4 className="font-bold text-green-900">Monitoring Nilai</h4>
+                                            <p className="text-sm text-green-600">{currentClass?.name}</p>
+                                        </div>
+                                    </div>
+                                    <Edit3 className="text-green-400 group-hover:text-green-600" size={20}/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-gray-50 p-6 rounded-xl border">
+                            {resourceEdit && (resourceEdit.type === 'schedule' || resourceEdit.type === 'grades') ? (
+                                <div className="animate-fade-in-up">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="font-bold text-gray-800">Edit {resourceEdit.item.title}</h3>
+                                        <Button onClick={handleResourceSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan</Button>
+                                    </div>
+                                    <div className="flex gap-4 mb-4">
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/>
+                                            <span className="text-sm">HTML Editor</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/>
+                                            <span className="text-sm">External Link</span>
+                                        </label>
+                                    </div>
+                                    {resourceEdit.item.type === 'html' ? (
+                                        <TextArea 
+                                            value={resourceEdit.item.content || ''} 
+                                            onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} 
+                                            className="h-64 font-mono text-sm"
+                                            placeholder="Masukkan kode HTML untuk tabel jadwal/nilai..."
+                                        />
+                                    ) : (
+                                        <Input 
+                                            value={resourceEdit.item.url || ''} 
+                                            onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} 
+                                            placeholder="https://..."
+                                        />
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-gray-400 text-center italic">
+                                    Pilih menu Jadwal atau Nilai di samping untuk mulai mengedit.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Card>
+             )}
+
              {tab === 'content' && (
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <Card className="lg:col-span-1 h-fit">
@@ -1116,25 +1586,21 @@ const AdminDashboardView: React.FC<{
                         <select className="w-full p-2 border rounded-lg bg-gray-50" value={selClassId} onChange={e => setSelClassId(e.target.value)}>
                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
-                        <div className="space-y-2 pt-2 border-t">
-                            <div onClick={() => setResourceEdit({ type: 'schedule', item: currentClass?.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'html', content: '' } })} className="p-2 rounded hover:bg-blue-50 text-blue-600 text-sm cursor-pointer flex items-center gap-2">
-                                <CalendarRange size={14}/> Pengaturan Jadwal
-                            </div>
-                            <div onClick={() => setResourceEdit({ type: 'grades', item: currentClass?.grades || { id: 'grd', title: 'Monitoring Nilai', type: 'html', content: '' } })} className="p-2 rounded hover:bg-green-50 text-green-600 text-sm cursor-pointer flex items-center gap-2">
-                                <GraduationCap size={14}/> Monitoring Nilai
-                            </div>
-                        </div>
                         <select className="w-full p-2 border rounded-lg bg-gray-50 mt-2" value={selSemId} onChange={e => setSelSemId(e.target.value)}>
                            <option value="ganjil">Semester Ganjil</option>
                            <option value="genap">Semester Genap</option>
                         </select>
                         <div className="space-y-1">
-                            <div className="p-2 bg-gray-100 rounded text-xs font-bold text-gray-500 uppercase">Evaluasi Semester (STS/SAS)</div>
+                            <div className="flex justify-between items-center px-1">
+                                <div className="p-2 text-xs font-bold text-gray-500 uppercase">Evaluasi Semester</div>
+                                <button onClick={() => setResourceEdit({ type: 'exam', item: { id: Date.now().toString(), title: 'Evaluasi Baru', type: 'link', url: '' } })} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">+ Tambah</button>
+                            </div>
                             {currentSemester?.exams?.map(exam => (
                                 <div key={exam.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded text-sm group">
                                     <span className="truncate">{exam.title}</span>
                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100">
                                         <button onClick={() => setResourceEdit({ type: 'exam', item: exam })}><Edit3 size={12} className="text-blue-500"/></button>
+                                        <button onClick={() => handleExamDelete(exam.id)}><Trash2 size={12} className="text-red-500"/></button>
                                     </div>
                                 </div>
                             ))}
@@ -1148,11 +1614,11 @@ const AdminDashboardView: React.FC<{
                      </div>
                   </Card>
                   <Card className="lg:col-span-2">
-                     {resourceEdit ? (
+                     {resourceEdit && resourceEdit.type === 'exam' ? (
                         <div>
-                            {/* Resource Editor (Schedule, etc) */}
+                            {/* Resource Editor (Exam) */}
                             <div className="flex justify-between items-center mb-6 border-b pb-4">
-                                <h2 className="text-xl font-bold">Edit Resource</h2>
+                                <h2 className="text-xl font-bold">Edit Soal Evaluasi</h2>
                                 <div className="flex gap-2">
                                     <Button variant="secondary" onClick={() => setResourceEdit(null)} className="py-2 px-4 text-sm">Batal</Button>
                                     <Button onClick={handleResourceSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan</Button>
@@ -1174,21 +1640,14 @@ const AdminDashboardView: React.FC<{
                             </div>
                         </div>
                      ) : (
-                        <div>
-                            {/* Chapter Editor */}
-                            <div className="flex justify-between items-center mb-6 border-b pb-4">
-                                <h2 className="text-xl font-bold">Edit Materi Bab</h2>
-                                <Button onClick={handleChapterSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan</Button>
-                            </div>
-                            <div className="space-y-6">
-                                <Input label="Judul Bab" value={chapForm.title || ''} onChange={e => setChapForm({...chapForm, title: e.target.value})}/>
-                                <TextArea label="Deskripsi" value={chapForm.description || ''} onChange={e => setChapForm({...chapForm, description: e.target.value})} className="!min-h-[80px]"/>
-                                {/* Simply show a note about editing content in this demo */}
-                                <div className="p-4 bg-yellow-50 text-yellow-800 rounded-lg text-sm border border-yellow-200">
-                                   Catatan: Dalam versi demo ini, editing konten detail (HTML) disederhanakan. Anda dapat mengedit judul dan deskripsi bab di sini.
-                                </div>
-                            </div>
-                        </div>
+                        chapForm ? (
+                           <AdminContentEditor 
+                              chapter={chapForm} 
+                              onSave={handleChapterUpdate} 
+                           />
+                        ) : (
+                           <div>Memuat data bab...</div>
+                        )
                      )}
                   </Card>
                </div>
@@ -1237,263 +1696,164 @@ const AdminDashboardView: React.FC<{
   );
 };
 
-const ExtraDetailView: React.FC<{ categoryId: string; extras: ExtraContent[]; onBack: () => void }> = ({ categoryId, extras, onBack }) => {
-   const categoryTitle = {
-      'doa': 'Kumpulan Doa',
-      'cerita': 'Kisah Islami',
-      'sholat': 'Panduan Sholat',
-      'fiqih': 'Fiqih Dasar',
-      'hadist': 'Hadist Pilihan',
-      'ramadhan': 'Spesial Ramadhan',
-      'lainnya': 'Lainnya'
-   }[categoryId] || 'Materi Tambahan';
-
-   const filteredExtras = extras.filter(e => e.category === categoryId);
-
-   return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-4xl mx-auto px-4 py-12">
-         <Button variant="secondary" onClick={onBack} className="mb-8"><ArrowLeft size={18}/> Kembali</Button>
-         <SectionTitle title={categoryTitle} center />
-         
-         <div className="grid gap-6">
-            {filteredExtras.map(item => (
-               <Card key={item.id} className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-4">{item.title}</h3>
-                  {item.type === 'html' ? (
-                     <div className="prose max-w-none" dangerouslySetInnerHTML={{ __html: item.content || '' }} />
-                  ) : (
-                     <a href={item.url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline flex items-center gap-2">
-                        <LinkIcon size={16}/> Buka Tautan
-                     </a>
-                  )}
-               </Card>
-            ))}
-            {filteredExtras.length === 0 && (
-               <div className="text-center text-gray-500 py-12">Belum ada konten untuk kategori ini.</div>
-            )}
-         </div>
-      </motion.div>
-   );
-};
-
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LANDING);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
-  const [selectedExtraCategory, setSelectedExtraCategory] = useState<ExtraCategory | null>(null);
-  const [currentUser, setCurrentUser] = useState<Student | null>(null);
-  
-  // Data State
+  const [selectedCategory, setSelectedCategory] = useState<ExtraCategory>('doa');
+
   const [classesData, setClassesData] = useState<ClassData[]>(CLASSES_DATA);
-  const [extrasData, setExtrasData] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
-  const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(DEFAULT_SCHOOL_PROFILE);
   const [studentsData, setStudentsData] = useState<Student[]>(DEFAULT_STUDENTS);
+  const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(DEFAULT_SCHOOL_PROFILE);
+  const [extrasData, setExtrasData] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
 
-  // Load data from Firebase
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!db) return; // Use local constants if db is null
-      try {
-        // Fetch School Profile
-        const profileDoc = await getDoc(doc(db, 'school_data', 'profile'));
-        if (profileDoc.exists()) setSchoolProfile(profileDoc.data() as SchoolProfile);
+  const [currentUser, setCurrentUser] = useState<Student | null>(null);
 
-        // Fetch Students
-        const studentsDoc = await getDoc(doc(db, 'school_data', 'students'));
-        if (studentsDoc.exists()) setStudentsData(studentsDoc.data().data as Student[]);
-
-        // Fetch Extras
-        const extrasDoc = await getDoc(doc(db, 'school_data', 'extras'));
-        if (extrasDoc.exists()) setExtrasData(extrasDoc.data().data as ExtraContent[]);
-
-        // Fetch Classes
-        const classesDoc = await getDoc(doc(db, 'school_data', 'classes'));
-        if (classesDoc.exists()) setClassesData(classesDoc.data().data as ClassData[]);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
-    fetchData();
-  }, []);
-
-  // --- FIREBASE UPDATE HELPERS ---
-  const saveToFirebase = async (collectionName: string, docName: string, data: any) => {
-    if (!db) return; // Ignore if offline
-    try {
-      await setDoc(doc(db, collectionName, docName), data);
-      console.log(`Saved ${docName} to Firebase`);
-    } catch (e) {
-      console.error("Error saving to Firebase", e);
-      alert("Gagal menyimpan ke cloud. Cek koneksi internet.");
-    }
+  const navigate = (newView: ViewState, classId?: string | null, chapterId?: string | null) => {
+      setView(newView);
+      if (classId !== undefined) setSelectedClassId(classId);
+      if (chapterId !== undefined) setSelectedChapterId(chapterId);
+      window.scrollTo(0, 0);
   };
 
-  const handleUpdateProfile = (newProfile: SchoolProfile) => {
-    setSchoolProfile(newProfile);
-    saveToFirebase('school_data', 'profile', newProfile);
+  const handleLoginSuccess = (student: Student, classId: string) => {
+      setCurrentUser(student);
+      navigate(ViewState.CLASS_DETAIL, classId);
   };
 
-  const handleUpdateStudents = (newStudents: Student[]) => {
-    setStudentsData(newStudents);
-    saveToFirebase('school_data', 'students', { data: newStudents });
-  };
-
-  const handleUpdateExtras = (newExtras: ExtraContent[]) => {
-    setExtrasData(newExtras);
-    saveToFirebase('school_data', 'extras', { data: newExtras });
-  };
-
-  const handleUpdateClassesWhole = (newClasses: ClassData[]) => {
-    setClassesData(newClasses);
-    saveToFirebase('school_data', 'classes', { data: newClasses });
-  };
-
-  const handleUpdateChapter = (classId: string, semesterId: string, chapterId: string, newData: Partial<Chapter>) => {
-    const newClasses = classesData.map(cls => {
-        if (cls.id !== classId) return cls;
-        return {
-          ...cls,
-          semesters: cls.semesters.map(sem => {
-            if (sem.id !== semesterId) return sem;
-            return {
-              ...sem,
-              chapters: sem.chapters.map(chap => {
-                if (chap.id !== chapterId) return chap;
-                return { ...chap, ...newData };
+  const handleUpdateChapter = (classId: string, semId: string, chapId: string, data: Partial<Chapter>) => {
+      setClassesData(prev => prev.map(cls => {
+          if (cls.id !== classId) return cls;
+          return {
+              ...cls,
+              semesters: cls.semesters.map(sem => {
+                  if (sem.id !== semId) return sem;
+                  return {
+                      ...sem,
+                      chapters: sem.chapters.map(chap => {
+                          if (chap.id !== chapId) return chap;
+                          return { ...chap, ...data };
+                      })
+                  };
               })
-            };
-          })
-        };
-      });
-      handleUpdateClassesWhole(newClasses);
+          };
+      }));
   };
 
-  const handleUpdateClass = (updatedClass: ClassData) => {
-      const newClasses = classesData.map(c => c.id === updatedClass.id ? updatedClass : c);
-      handleUpdateClassesWhole(newClasses);
-  };
-
-  const handleClassSelect = (id: string) => {
-    setSelectedClassId(id);
-    setView(ViewState.STUDENT_LOGIN);
-  };
-
-  const handleLoginSuccess = (student: Student) => {
-    setCurrentUser(student);
-    setView(ViewState.CLASS_DETAIL);
-  };
-
-  const handleChapterSelect = (id: string) => {
-    setSelectedChapterId(id);
-    setView(ViewState.CHAPTER_CONTENT);
-  };
-  
-  const handleExtraCategorySelect = (cat: ExtraCategory) => {
-     setSelectedExtraCategory(cat);
-     setView(ViewState.EXTRA_DETAIL);
-  };
-
-  const renderView = () => {
-    switch (view) {
-      case ViewState.LANDING:
-        return (
-          <LandingView 
-            classes={classesData} 
-            extras={extrasData}
-            onStart={() => {
-              const element = document.getElementById('pilih-kelas');
-              element?.scrollIntoView({ behavior: 'smooth' });
-            }}
-            onSelectClass={handleClassSelect}
-            onSelectCategory={handleExtraCategorySelect}
-          />
-        );
-      case ViewState.STUDENT_LOGIN:
-        return (
-          <StudentLoginView 
-            targetClassId={selectedClassId!} 
-            classes={classesData} 
-            students={studentsData}
-            onLoginSuccess={handleLoginSuccess}
-            onBack={() => setView(ViewState.LANDING)}
-          />
-        );
-      case ViewState.CLASS_DETAIL:
-        return (
-          <ClassDetailView 
-            classData={classesData.find(c => c.id === selectedClassId)!} 
-            student={currentUser}
-            onBack={() => {
-               setCurrentUser(null);
-               setView(ViewState.LANDING);
-            }}
-            onSelectChapter={handleChapterSelect}
-          />
-        );
-      case ViewState.CHAPTER_CONTENT:
-         const cls = classesData.find(c => c.id === selectedClassId);
-         const semester = cls?.semesters.find(s => s.chapters.some(ch => ch.id === selectedChapterId));
-         const chapter = semester?.chapters.find(ch => ch.id === selectedChapterId);
-         
-         if (!chapter) return <div>Chapter not found</div>;
-
-         return (
-            <ChapterContentView 
-               chapter={chapter}
-               onBack={() => setView(ViewState.CLASS_DETAIL)}
-            />
-         );
-      case ViewState.ADMIN_LOGIN:
-         return (
-            <AdminLoginView 
-               onLogin={() => setView(ViewState.ADMIN_DASHBOARD)}
-               onBack={() => setView(ViewState.LANDING)}
-            />
-         );
-      case ViewState.ADMIN_DASHBOARD:
-         return (
-            <AdminDashboardView 
-              classes={classesData}
-              schoolProfile={schoolProfile}
-              students={studentsData}
-              extras={extrasData}
-              onUpdateChapter={handleUpdateChapter}
-              onUpdateClass={handleUpdateClass}
-              onUpdateProfile={handleUpdateProfile}
-              onUpdateStudents={handleUpdateStudents}
-              onUpdateExtras={handleUpdateExtras}
-              onLogout={() => setView(ViewState.LANDING)}
-            />
-         );
-      case ViewState.EXTRA_DETAIL:
-         return (
-            <ExtraDetailView 
-               categoryId={selectedExtraCategory!}
-               extras={extrasData}
-               onBack={() => setView(ViewState.LANDING)}
-            />
-         );
-      default:
-        return <div>View not found</div>;
-    }
-  };
+  const activeChapter = selectedClassId && selectedChapterId 
+      ? classesData.find(c => c.id === selectedClassId)?.semesters.flatMap(s => s.chapters).find(ch => ch.id === selectedChapterId)
+      : null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-white font-sans text-gray-800 selection:bg-blue-200 selection:text-blue-900">
-      <Navbar 
-         schoolName={schoolProfile.name} 
-         goHome={() => setView(ViewState.LANDING)}
-         goAdmin={() => setView(ViewState.ADMIN_LOGIN)}
-      />
-      <main className="pt-24 pb-20 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 font-sans text-gray-800">
+      {view !== ViewState.ADMIN_DASHBOARD && (
+          <Navbar 
+             goHome={() => navigate(ViewState.LANDING)}
+             goAdmin={() => navigate(ViewState.ADMIN_LOGIN)}
+             schoolName={schoolProfile.name}
+          />
+      )}
+
+      <div className={view !== ViewState.ADMIN_DASHBOARD ? "pt-20" : ""}>
         <AnimatePresence mode="wait">
-          {renderView()}
+           {view === ViewState.LANDING && (
+              <LandingView 
+                  key="landing"
+                  onSelectClass={(clsId) => { navigate(ViewState.STUDENT_LOGIN, clsId); }}
+                  onAdminLogin={() => navigate(ViewState.ADMIN_LOGIN)}
+                  onSelectCategory={(c) => { setSelectedCategory(c); navigate(ViewState.EXTRA_CATEGORY_LIST); }}
+                  classes={classesData}
+                  extras={extrasData}
+              />
+           )}
+           
+           {view === ViewState.STUDENT_LOGIN && (
+              <StudentLoginView 
+                  key="login"
+                  initialClassId={selectedClassId}
+                  classes={classesData}
+                  students={studentsData}
+                  onLoginSuccess={handleLoginSuccess}
+                  onBack={() => navigate(ViewState.LANDING)}
+              />
+           )}
+
+           {view === ViewState.CLASS_DETAIL && selectedClassId && (
+              <ClassDetailView 
+                  key="class-detail"
+                  classData={classesData.find(c => c.id === selectedClassId)!}
+                  student={currentUser}
+                  onBack={() => navigate(ViewState.LANDING)}
+                  onSelectChapter={(cid) => navigate(ViewState.CHAPTER_CONTENT, selectedClassId, cid)}
+              />
+           )}
+
+           {view === ViewState.CHAPTER_CONTENT && activeChapter && (
+              <ChapterContentView 
+                  key="chapter-content"
+                  chapter={activeChapter}
+                  onBack={() => navigate(ViewState.CLASS_DETAIL)}
+              />
+           )}
+
+           {view === ViewState.EXTRA_CATEGORY_LIST && (
+              <motion.div key="extra-list" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="max-w-6xl mx-auto px-4 py-8">
+                  <Button variant="secondary" onClick={() => navigate(ViewState.LANDING)} className="mb-8"><ArrowLeft size={16}/> Kembali</Button>
+                  <SectionTitle title={`Kategori: ${selectedCategory.toUpperCase()}`} />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {extrasData.filter(e => e.category === selectedCategory).map(item => (
+                          <Card key={item.id}>
+                              <div className="flex items-center gap-3 mb-3">
+                                  <div className={`p-2 rounded-lg bg-gray-100`}>
+                                     {item.category === 'doa' && <BookHeart size={20} className="text-green-600"/>}
+                                     {item.category === 'sholat' && <Sun size={20} className="text-orange-600"/>}
+                                     {item.category !== 'doa' && item.category !== 'sholat' && <Sparkles size={20} className="text-blue-600"/>}
+                                  </div>
+                                  <h3 className="font-bold text-gray-800">{item.title}</h3>
+                              </div>
+                              {item.type === 'link' ? (
+                                  <a href={item.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 text-sm font-medium"><LinkIcon size={14}/> Buka Konten</a>
+                              ) : (
+                                  <div className="prose prose-sm max-w-none text-gray-600" dangerouslySetInnerHTML={{ __html: item.content || '' }} />
+                              )}
+                          </Card>
+                      ))}
+                      {extrasData.filter(e => e.category === selectedCategory).length === 0 && (
+                          <div className="col-span-full text-center py-12 text-gray-400 italic">Belum ada konten untuk kategori ini.</div>
+                      )}
+                  </div>
+              </motion.div>
+           )}
+
+           {view === ViewState.ADMIN_LOGIN && (
+              <AdminLoginView 
+                  key="admin-login"
+                  onLogin={() => navigate(ViewState.ADMIN_DASHBOARD)}
+                  onBack={() => navigate(ViewState.LANDING)}
+              />
+           )}
+
+           {view === ViewState.ADMIN_DASHBOARD && (
+              <AdminDashboardView 
+                  key="admin-dash"
+                  classes={classesData}
+                  schoolProfile={schoolProfile}
+                  students={studentsData}
+                  extras={extrasData}
+                  onUpdateChapter={handleUpdateChapter}
+                  onUpdateClass={(u) => setClassesData(prev => prev.map(c => c.id === u.id ? u : c))}
+                  onUpdateProfile={setSchoolProfile}
+                  onUpdateStudents={setStudentsData}
+                  onUpdateExtras={setExtrasData}
+                  onLogout={() => navigate(ViewState.LANDING)}
+              />
+           )}
         </AnimatePresence>
-      </main>
-      <Footer 
-         profile={schoolProfile} 
-         onAdminClick={() => setView(ViewState.ADMIN_LOGIN)}
-      />
+      </div>
+
+      {view !== ViewState.ADMIN_DASHBOARD && view !== ViewState.CHAPTER_CONTENT && (
+          <Footer onAdminClick={() => navigate(ViewState.ADMIN_LOGIN)} profile={schoolProfile} />
+      )}
     </div>
   );
 };

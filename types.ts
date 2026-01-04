@@ -12,6 +12,8 @@ export enum ViewState {
 export interface ContentSection {
   id: string;
   title: string; // Judul sub-bab / materi
+  type?: 'link' | 'html'; // Added type support
+  url?: string; // Added url support
   content: string; // HTML Source Code
 }
 
@@ -38,17 +40,19 @@ export interface Chapter {
 export interface Semester {
   id: 'ganjil' | 'genap';
   name: string;
+  grades?: ResourceItem; // Nilai is per semester now
   exams?: ResourceItem[]; // Bank Soal STS / SAS
   chapters: Chapter[];
 }
 
 export interface ClassData {
-  id: string; // '7', '8', '9'
-  name: string;
+  id: string; // '7A', '7B', etc.
+  name: string; // 'Kelas VII A'
+  gradeLevel: '7' | '8' | '9'; // Helper for grouping
   color: string; // Tailwind color class base
   icon: string;
-  schedule?: ResourceItem; // Jadwal Pelajaran (Class Level)
-  grades?: ResourceItem;   // Monitoring Nilai (Class Level)
+  schedule?: ResourceItem; // Jadwal Pelajaran (Specific to Class Section)
+  grades?: ResourceItem; // Monitoring Nilai (Specific to Class Section, usually per semester but can be general)
   semesters: Semester[];
 }
 
@@ -66,7 +70,7 @@ export interface Student {
   name: string;
   nis: string;
   gender: 'L' | 'P';
-  classId: string; // '7', '8', '9'
+  classId: string; // '7A', '7B', etc.
 }
 
 export type ExtraCategory = 'doa' | 'cerita' | 'sholat' | 'fiqih' | 'hadist' | 'ramadhan' | 'lainnya';
