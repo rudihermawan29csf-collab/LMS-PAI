@@ -49,8 +49,9 @@ import {
   User
 } from 'lucide-react';
 
-// Import Firebase (db will be null if config not set)
-import { db, doc, setDoc, getDoc, collection, getDocs } from './firebase';
+// Import Firebase
+import { db, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from './firebase';
+import { writeBatch } from 'firebase/firestore';
 
 import { CLASSES_DATA, FEATURES, DEFAULT_SCHOOL_PROFILE, DEFAULT_STUDENTS, DEFAULT_EXTRAS } from './constants';
 import { ViewState, ClassData, Chapter, SchoolProfile, Student, ExtraContent, ExtraCategory, ResourceItem, ContentSection } from './types';
@@ -1132,10 +1133,12 @@ const AdminDashboardView: React.FC<{
   onUpdateChapter: (classId: string, semesterId: string, chapterId: string, data: Partial<Chapter>) => void;
   onUpdateClass: (updatedClass: ClassData) => void;
   onUpdateProfile: (profile: SchoolProfile) => void;
-  onUpdateStudents: (students: Student[]) => void;
-  onUpdateExtras: (extras: ExtraContent[]) => void;
+  onSaveStudent: (student: Student) => void;
+  onDeleteStudent: (id: string) => void;
+  onSaveExtra: (extra: ExtraContent) => void;
+  onDeleteExtra: (id: string) => void;
   onLogout: () => void;
-}> = ({ classes, schoolProfile, students, extras, onUpdateChapter, onUpdateClass, onUpdateProfile, onUpdateStudents, onUpdateExtras, onLogout }) => {
+}> = ({ classes, schoolProfile, students, extras, onUpdateChapter, onUpdateClass, onUpdateProfile, onSaveStudent, onDeleteStudent, onSaveExtra, onDeleteExtra, onLogout }) => {
   const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras' | 'schedule'>('profile');
 
   // Profile
@@ -1161,12 +1164,8 @@ const AdminDashboardView: React.FC<{
         gender: studentForm.gender || 'L'
     };
 
-    if (editingStudentId) {
-      onUpdateStudents(students.map(s => s.id === editingStudentId ? studentData : s));
-      setEditingStudentId(null);
-    } else {
-      onUpdateStudents([...students, studentData]);
-    }
+    onSaveStudent(studentData);
+    setEditingStudentId(null);
     setStudentForm({ classId: '7A', gender: 'L', name: '', nis: '' });
   };
   
@@ -1177,7 +1176,7 @@ const AdminDashboardView: React.FC<{
 
   const handleStudentDelete = (id: string) => {
     if (confirm('Hapus siswa ini?')) {
-      onUpdateStudents(students.filter(s => s.id !== id));
+      onDeleteStudent(id);
     }
   };
 
@@ -1219,7 +1218,9 @@ const AdminDashboardView: React.FC<{
           });
   
           if (confirm(`Ditemukan ${newStudents.length} data siswa dari Excel. Tambahkan ke database?`)) {
-              onUpdateStudents([...students, ...newStudents]);
+              // Batch save
+              newStudents.forEach(s => onSaveStudent(s));
+              alert("Data sedang diimpor ke database...");
           }
           if (fileInputRef.current) fileInputRef.current.value = '';
       };
@@ -1235,20 +1236,17 @@ const AdminDashboardView: React.FC<{
   const handleExtraSave = () => {
     if (!extraForm.title) return alert("Judul wajib diisi");
     
-    if (editingExtraId) {
-      onUpdateExtras(extras.map(e => e.id === editingExtraId ? { ...e, ...extraForm } as ExtraContent : e));
-      setEditingExtraId(null);
-    } else {
-      const newExtra: ExtraContent = {
-        id: Date.now().toString(),
-        title: extraForm.title!,
-        category: extraForm.category || 'doa',
-        type: extraForm.type || 'link',
-        url: extraForm.url || '',
-        content: extraForm.content || ''
-      };
-      onUpdateExtras([...extras, newExtra]);
-    }
+    const newExtra: ExtraContent = {
+      id: editingExtraId || Date.now().toString(),
+      title: extraForm.title!,
+      category: extraForm.category || 'doa',
+      type: extraForm.type || 'link',
+      url: extraForm.url || '',
+      content: extraForm.content || ''
+    };
+    
+    onSaveExtra(newExtra);
+    setEditingExtraId(null);
     setExtraForm({ category: 'doa', type: 'link', title: '', url: '', content: '' });
   };
   
@@ -1258,7 +1256,7 @@ const AdminDashboardView: React.FC<{
   };
 
   const handleExtraDelete = (id: string) => {
-    if (confirm('Hapus konten ini?')) onUpdateExtras(extras.filter(e => e.id !== id));
+    if (confirm('Hapus konten ini?')) onDeleteExtra(id);
   };
 
   // Content
@@ -1708,6 +1706,159 @@ const App: React.FC = () => {
   const [extrasData, setExtrasData] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
 
   const [currentUser, setCurrentUser] = useState<Student | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // --- Firebase Integration ---
+  
+  // Seed Database if Empty
+  const seedDatabase = async () => {
+     try {
+        console.log("Seeding Database...");
+        const batch = writeBatch(db);
+        
+        // Profile
+        batch.set(doc(db, 'settings', 'schoolProfile'), DEFAULT_SCHOOL_PROFILE);
+        
+        // Classes
+        CLASSES_DATA.forEach(cls => {
+            batch.set(doc(db, 'classes', cls.id), cls);
+        });
+
+        // Students (Only seed a few if array is large, or use batch limit. Firestore batch limit is 500)
+        // We will skip seeding 500 students here to avoid errors and lag. Admin can import excel.
+        // We just seed a few sample students for testing if totally empty
+        DEFAULT_STUDENTS.slice(0, 10).forEach(s => {
+            batch.set(doc(db, 'students', s.id), s);
+        });
+
+        // Extras
+        DEFAULT_EXTRAS.forEach(ex => {
+            batch.set(doc(db, 'extras', ex.id), ex);
+        });
+
+        await batch.commit();
+        console.log("Seeding Complete. Reloading page...");
+        window.location.reload();
+     } catch (e) {
+        console.error("Error seeding DB:", e);
+     }
+  };
+
+  useEffect(() => {
+     const fetchData = async () => {
+        if (!db) {
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            // Fetch Profile
+            const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
+            if (profileSnap.exists()) {
+                setSchoolProfile(profileSnap.data() as SchoolProfile);
+            }
+
+            // Fetch Classes
+            const classesSnap = await getDocs(collection(db, 'classes'));
+            const fetchedClasses: ClassData[] = [];
+            classesSnap.forEach(d => fetchedClasses.push(d.data() as ClassData));
+            
+            // Fetch Students
+            const studentsSnap = await getDocs(collection(db, 'students'));
+            const fetchedStudents: Student[] = [];
+            studentsSnap.forEach(d => fetchedStudents.push(d.data() as Student));
+
+            // Fetch Extras
+            const extrasSnap = await getDocs(collection(db, 'extras'));
+            const fetchedExtras: ExtraContent[] = [];
+            extrasSnap.forEach(d => fetchedExtras.push(d.data() as ExtraContent));
+
+            // Logic: If classes are empty, we assume DB is empty and Seed it
+            if (fetchedClasses.length === 0) {
+               await seedDatabase();
+            } else {
+               setClassesData(fetchedClasses);
+               if (fetchedStudents.length > 0) setStudentsData(fetchedStudents);
+               if (fetchedExtras.length > 0) setExtrasData(fetchedExtras);
+            }
+        } catch (e) {
+            console.error("Fetch Error:", e);
+        } finally {
+            setIsLoading(false);
+        }
+     };
+
+     fetchData();
+  }, []);
+
+  // --- Sync Handlers ---
+
+  const handleUpdateProfile = async (newProfile: SchoolProfile) => {
+      setSchoolProfile(newProfile);
+      if(db) await setDoc(doc(db, 'settings', 'schoolProfile'), newProfile);
+  };
+
+  const handleUpdateClass = async (updatedClass: ClassData) => {
+      setClassesData(prev => prev.map(c => c.id === updatedClass.id ? updatedClass : c));
+      if(db) await setDoc(doc(db, 'classes', updatedClass.id), updatedClass);
+  };
+
+  const handleUpdateChapter = async (classId: string, semId: string, chapId: string, data: Partial<Chapter>) => {
+      let updatedClass: ClassData | null = null;
+      setClassesData(prev => {
+          const newData = prev.map(cls => {
+            if (cls.id !== classId) return cls;
+            const newCls = {
+                ...cls,
+                semesters: cls.semesters.map(sem => {
+                    if (sem.id !== semId) return sem;
+                    return {
+                        ...sem,
+                        chapters: sem.chapters.map(chap => {
+                            if (chap.id !== chapId) return chap;
+                            return { ...chap, ...data };
+                        })
+                    };
+                })
+            };
+            updatedClass = newCls;
+            return newCls;
+          });
+          return newData;
+      });
+      // Sync to DB
+      if(db && updatedClass) await setDoc(doc(db, 'classes', classId), updatedClass);
+  };
+
+  const handleSaveStudent = async (student: Student) => {
+      // Optimistic UI update
+      setStudentsData(prev => {
+          const exists = prev.find(s => s.id === student.id);
+          if (exists) return prev.map(s => s.id === student.id ? student : s);
+          return [...prev, student];
+      });
+      if(db) await setDoc(doc(db, 'students', student.id), student);
+  };
+
+  const handleDeleteStudent = async (id: string) => {
+      setStudentsData(prev => prev.filter(s => s.id !== id));
+      if(db) await deleteDoc(doc(db, 'students', id));
+  };
+
+  const handleSaveExtra = async (extra: ExtraContent) => {
+      setExtrasData(prev => {
+          const exists = prev.find(e => e.id === extra.id);
+          if (exists) return prev.map(e => e.id === extra.id ? extra : e);
+          return [...prev, extra];
+      });
+      if(db) await setDoc(doc(db, 'extras', extra.id), extra);
+  };
+
+  const handleDeleteExtra = async (id: string) => {
+      setExtrasData(prev => prev.filter(e => e.id !== id));
+      if(db) await deleteDoc(doc(db, 'extras', id));
+  };
+
 
   const navigate = (newView: ViewState, classId?: string | null, chapterId?: string | null) => {
       setView(newView);
@@ -1721,28 +1872,20 @@ const App: React.FC = () => {
       navigate(ViewState.CLASS_DETAIL, classId);
   };
 
-  const handleUpdateChapter = (classId: string, semId: string, chapId: string, data: Partial<Chapter>) => {
-      setClassesData(prev => prev.map(cls => {
-          if (cls.id !== classId) return cls;
-          return {
-              ...cls,
-              semesters: cls.semesters.map(sem => {
-                  if (sem.id !== semId) return sem;
-                  return {
-                      ...sem,
-                      chapters: sem.chapters.map(chap => {
-                          if (chap.id !== chapId) return chap;
-                          return { ...chap, ...data };
-                      })
-                  };
-              })
-          };
-      }));
-  };
-
   const activeChapter = selectedClassId && selectedChapterId 
       ? classesData.find(c => c.id === selectedClassId)?.semesters.flatMap(s => s.chapters).find(ch => ch.id === selectedChapterId)
       : null;
+
+  if (isLoading) {
+      return (
+          <div className="min-h-screen flex items-center justify-center bg-gray-50">
+              <div className="text-center">
+                  <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-500 font-medium">Memuat Data...</p>
+              </div>
+          </div>
+      );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 font-sans text-gray-800">
@@ -1841,10 +1984,12 @@ const App: React.FC = () => {
                   students={studentsData}
                   extras={extrasData}
                   onUpdateChapter={handleUpdateChapter}
-                  onUpdateClass={(u) => setClassesData(prev => prev.map(c => c.id === u.id ? u : c))}
-                  onUpdateProfile={setSchoolProfile}
-                  onUpdateStudents={setStudentsData}
-                  onUpdateExtras={setExtrasData}
+                  onUpdateClass={handleUpdateClass}
+                  onUpdateProfile={handleUpdateProfile}
+                  onSaveStudent={handleSaveStudent}
+                  onDeleteStudent={handleDeleteStudent}
+                  onSaveExtra={handleSaveExtra}
+                  onDeleteExtra={handleDeleteExtra}
                   onLogout={() => navigate(ViewState.LANDING)}
               />
            )}

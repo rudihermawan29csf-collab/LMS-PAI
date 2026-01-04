@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 
 // ==========================================
 // TAHAP 2: TEMPEL KODE CONFIG DI BAWAH INI
@@ -40,4 +40,4 @@ try {
   db = null;
 }
 
-export { db, doc, setDoc, getDoc, collection, getDocs };
+export { db, doc, setDoc, getDoc, collection, getDocs, deleteDoc };
