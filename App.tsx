@@ -47,7 +47,9 @@ import {
   Phone,
   UserCog,
   User,
-  Quote
+  Quote,
+  List,
+  MonitorPlay
 } from 'lucide-react';
 
 // Import Firebase
@@ -229,7 +231,7 @@ const TrafficLights = () => (
 );
 
 // --- New Component: Rich HTML Content Renderer ---
-const RichHtmlContent: React.FC<{ content: string; className?: string }> = ({ content, className = '' }) => {
+const RichHtmlContent: React.FC<{ content: string; className?: string; iframeHeight?: string }> = ({ content, className = '', iframeHeight = 'h-[800px]' }) => {
   // Gunakan regex untuk deteksi yang lebih robust (case insensitive)
   const isComplexContent = /<script|<style|<iframe/i.test(content);
 
@@ -239,7 +241,7 @@ const RichHtmlContent: React.FC<{ content: string; className?: string }> = ({ co
         {/* Menggunakan srcDoc untuk menjalankan script dalam sandbox yang aman */}
         <iframe 
           srcDoc={content} 
-          className="w-full h-[800px] border-none" 
+          className={`w-full ${iframeHeight} border-none`}
           title="Embedded Content"
           sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
         />
@@ -559,7 +561,7 @@ const ClassDetailView: React.FC<{
       {classData.schedule && (
          <Card className="mb-6 border-l-4 border-l-blue-500 bg-blue-50/50">
             <h3 className="font-bold text-blue-800 mb-3 flex items-center gap-2"><CalendarRange size={18}/> Jadwal Pelajaran {classData.name}</h3>
-            {classData.schedule.type === 'html' ? <RichHtmlContent content={classData.schedule.content || ''} /> : <a href={classData.schedule.url} target="_blank" className="text-blue-600 hover:underline">Lihat Jadwal</a>}
+            {classData.schedule.type === 'html' ? <RichHtmlContent content={classData.schedule.content || ''} iframeHeight="h-[500px]" /> : <a href={classData.schedule.url} target="_blank" className="text-blue-600 hover:underline">Lihat Jadwal</a>}
          </Card>
       )}
 
@@ -609,58 +611,111 @@ const ClassDetailView: React.FC<{
 
 const ChapterContentView: React.FC<{ chapter: Chapter; onBack: () => void }> = ({ chapter, onBack }) => {
   const [activeTab, setActiveTab] = useState<'materi' | 'video' | 'kuis'>('materi');
+  const [selectedContentId, setSelectedContentId] = useState<string | null>(null);
+
+  // Reset selected content when tab changes
+  useEffect(() => {
+    if (activeTab === 'materi') {
+      if (chapter.contents.length > 0) setSelectedContentId(chapter.contents[0].id);
+      else setSelectedContentId(null);
+    } else if (activeTab === 'video') {
+      if (chapter.videos.length > 0) setSelectedContentId(chapter.videos[0].id);
+      else setSelectedContentId(null);
+    } else if (activeTab === 'kuis') {
+      if (chapter.quizzes.length > 0) setSelectedContentId(chapter.quizzes[0].id);
+      else setSelectedContentId(null);
+    }
+  }, [activeTab, chapter]);
+
+  const renderContent = () => {
+    if (activeTab === 'materi') {
+      const section = chapter.contents.find(c => c.id === selectedContentId);
+      if (!section) return <div className="text-center text-gray-400 py-10">Pilih judul materi di sebelah kiri/atas untuk membaca.</div>;
+      
+      return (
+        <motion.div initial={{opacity:0}} animate={{opacity:1}} key={section.id}>
+           <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-4">{section.title}</h2>
+           {section.type === 'link' ? <a href={section.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 font-medium"><LinkIcon size={18}/> Buka Materi: {section.title}</a> : <RichHtmlContent content={section.content} />}
+        </motion.div>
+      );
+    } 
+    
+    if (activeTab === 'video') {
+      const video = chapter.videos.find(v => v.id === selectedContentId);
+      if (!video) return <div className="text-center text-gray-400 py-10">Pilih judul video di sebelah kiri/atas untuk menonton.</div>;
+
+      return (
+        <motion.div initial={{opacity:0}} animate={{opacity:1}} key={video.id}>
+           <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-4">{video.title}</h2>
+           {video.type === 'link' && video.url ? (
+             <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} title={video.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-[300px] md:h-[400px]"></iframe></div>
+           ) : <RichHtmlContent content={video.content || ''} />}
+        </motion.div>
+      );
+    }
+
+    if (activeTab === 'kuis') {
+      const quiz = chapter.quizzes.find(q => q.id === selectedContentId);
+      if (!quiz) return <div className="text-center text-gray-400 py-10">Pilih judul kuis di sebelah kiri/atas untuk mengerjakan.</div>;
+
+      return (
+        <motion.div initial={{opacity:0}} animate={{opacity:1}} key={quiz.id} className="p-6 border border-gray-200 rounded-xl bg-gray-50 flex flex-col items-center gap-6 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600"><FileQuestion size={32}/></div>
+            <div>
+              <h4 className="font-bold text-gray-900 text-xl">{quiz.title}</h4>
+              <p className="text-gray-500">Kerjakan dengan jujur dan teliti.</p>
+            </div>
+            {quiz.type === 'link' ? <a href={quiz.url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">Mulai Kuis Sekarang</a> : <RichHtmlContent content={quiz.content || ''} />}
+        </motion.div>
+      );
+    }
+  };
+
+  const getList = () => {
+    if (activeTab === 'materi') return chapter.contents;
+    if (activeTab === 'video') return chapter.videos;
+    return chapter.quizzes;
+  };
+
+  const items = getList();
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-5xl mx-auto px-4 py-8">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="max-w-7xl mx-auto px-4 py-8">
       <Button variant="secondary" onClick={onBack} className="mb-6"><ArrowLeft size={16}/> Kembali ke Bab</Button>
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/4">
-           <Card className="p-4 sticky top-24">
-              <h3 className="font-bold text-gray-900 mb-4">Daftar Isi</h3>
-              <div className="space-y-2">
-                 <button onClick={() => setActiveTab('materi')} className={`w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors ${activeTab === 'materi' ? 'bg-blue-50 text-blue-700 font-bold' : 'hover:bg-gray-50 text-gray-600'}`}><BookOpen size={18}/> Materi</button>
-                 <button onClick={() => setActiveTab('video')} className={`w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors ${activeTab === 'video' ? 'bg-red-50 text-red-700 font-bold' : 'hover:bg-gray-50 text-gray-600'}`}><Youtube size={18}/> Video</button>
-                 <button onClick={() => setActiveTab('kuis')} className={`w-full text-left p-3 rounded-lg flex items-center gap-3 transition-colors ${activeTab === 'kuis' ? 'bg-green-50 text-green-700 font-bold' : 'hover:bg-gray-50 text-gray-600'}`}><Gamepad size={18}/> Kuis</button>
+      <div className="flex flex-col lg:flex-row gap-8">
+        
+        {/* Sidebar / Top Navigation for Items */}
+        <div className="w-full lg:w-1/4 flex-shrink-0">
+           <Card className="p-0 overflow-hidden sticky top-24">
+              <div className="bg-gray-50 p-4 border-b border-gray-100">
+                 <h3 className="font-bold text-gray-900 mb-3 text-lg">Menu Belajar</h3>
+                 <div className="flex gap-2">
+                    <button onClick={() => setActiveTab('materi')} className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'materi' ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100'}`}><BookOpen size={18} className="mb-1"/> Materi</button>
+                    <button onClick={() => setActiveTab('video')} className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'video' ? 'bg-red-100 text-red-700' : 'text-gray-500 hover:bg-gray-100'}`}><MonitorPlay size={18} className="mb-1"/> Video</button>
+                    <button onClick={() => setActiveTab('kuis')} className={`flex-1 flex flex-col items-center justify-center py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'kuis' ? 'bg-green-100 text-green-700' : 'text-gray-500 hover:bg-gray-100'}`}><Gamepad size={18} className="mb-1"/> Kuis</button>
+                 </div>
+              </div>
+              <div className="p-3 space-y-1 max-h-[300px] lg:max-h-[calc(100vh-300px)] overflow-y-auto">
+                 {items.length > 0 ? items.map((item: any) => (
+                    <button 
+                      key={item.id} 
+                      onClick={() => setSelectedContentId(item.id)}
+                      className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center gap-3 ${selectedContentId === item.id ? 'bg-blue-600 text-white shadow-md' : 'text-gray-600 hover:bg-gray-50'}`}
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${selectedContentId === item.id ? 'bg-white' : 'bg-gray-300'}`}></div>
+                      <span className="line-clamp-2">{item.title}</span>
+                    </button>
+                 )) : (
+                   <div className="text-center py-8 text-xs text-gray-400 italic">Belum ada konten di bagian ini.</div>
+                 )}
               </div>
            </Card>
         </div>
-        <div className="w-full md:w-3/4">
+
+        {/* Content Area */}
+        <div className="w-full lg:w-3/4">
            <Card className="min-h-[500px] p-6 md:p-10">
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 border-b pb-4">{chapter.title}</h1>
-              {activeTab === 'materi' && (
-                <div className="prose prose-lg max-w-none prose-blue">
-                   {chapter.contents && chapter.contents.length > 0 ? chapter.contents.map(section => (
-                     <div key={section.id} className="mb-8">
-                        {section.title && <h3 className="text-xl font-bold mb-3 text-gray-800">{section.title}</h3>}
-                        {section.type === 'link' ? <a href={section.url} target="_blank" className="text-blue-600 hover:underline flex items-center gap-2 font-medium"><LinkIcon size={18}/> Buka Materi: {section.title}</a> : <RichHtmlContent content={section.content} />}
-                     </div>
-                   )) : <p className="text-gray-500 italic">Materi belum tersedia.</p>}
-                </div>
-              )}
-              {activeTab === 'video' && (
-                 <div className="space-y-8">
-                    {chapter.videos && chapter.videos.length > 0 ? chapter.videos.map(video => (
-                      <div key={video.id}>
-                         <h3 className="font-bold text-lg mb-2">{video.title}</h3>
-                         {video.type === 'link' && video.url ? (
-                           <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} title={video.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-[300px] md:h-[400px]"></iframe></div>
-                         ) : <RichHtmlContent content={video.content || ''} />}
-                      </div>
-                    )) : <p className="text-gray-500 italic">Video pembelajaran belum tersedia.</p>}
-                 </div>
-              )}
-              {activeTab === 'kuis' && (
-                 <div className="space-y-4">
-                    {chapter.quizzes && chapter.quizzes.length > 0 ? chapter.quizzes.map(quiz => (
-                       <div key={quiz.id} className="p-6 border border-gray-200 rounded-xl bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
-                          <div className="flex items-center gap-4">
-                             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center text-green-600"><FileQuestion size={24}/></div>
-                             <div><h4 className="font-bold text-gray-900">{quiz.title}</h4><p className="text-sm text-gray-500">Kerjakan dengan jujur.</p></div>
-                          </div>
-                          {quiz.type === 'link' ? <a href={quiz.url} target="_blank" rel="noreferrer" className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">Mulai Kuis</a> : <RichHtmlContent content={quiz.content || ''} />}
-                       </div>
-                    )) : <p className="text-gray-500 italic">Kuis belum tersedia.</p>}
-                 </div>
-              )}
+              {renderContent()}
            </Card>
         </div>
       </div>
@@ -1260,206 +1315,205 @@ const AdminDashboardView: React.FC<{
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>(ViewState.LANDING);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<Student | null>(null);
   
-  // Data States
+  // Data State
   const [classes, setClasses] = useState<ClassData[]>(CLASSES_DATA);
   const [students, setStudents] = useState<Student[]>(DEFAULT_STUDENTS);
   const [extras, setExtras] = useState<ExtraContent[]>(DEFAULT_EXTRAS);
   const [schoolProfile, setSchoolProfile] = useState<SchoolProfile>(DEFAULT_SCHOOL_PROFILE);
-  
-  // Selection State
+
+  // Nav State
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<ExtraCategory | null>(null);
+  const [currentUser, setCurrentUser] = useState<Student | null>(null);
+  
+  // Extra Item Accordion State
+  const [expandedExtraId, setExpandedExtraId] = useState<string | null>(null);
 
+  // Sync with DB (Simple Implementation)
   useEffect(() => {
-    const fetchData = async () => {
-      if (!db) return;
-      try {
-        const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
-        if (profileSnap.exists()) setSchoolProfile(profileSnap.data() as SchoolProfile);
-
-        const sSnap = await getDocs(collection(db, 'students'));
-        if (!sSnap.empty) setStudents(sSnap.docs.map(d => d.data() as Student));
-        
-        const cSnap = await getDocs(collection(db, 'classes'));
-        if (!cSnap.empty) setClasses(cSnap.docs.map(d => d.data() as ClassData));
-
-        const eSnap = await getDocs(collection(db, 'extras'));
-        if (!eSnap.empty) setExtras(eSnap.docs.map(d => d.data() as ExtraContent));
-      } catch (e) {
-        console.error("Firebase load error", e);
-      }
-    };
-    fetchData();
+    if (db) {
+      const sync = async () => {
+         try {
+           const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
+           if (profileSnap.exists()) setSchoolProfile(profileSnap.data() as SchoolProfile);
+           // Add other syncs here if needed
+         } catch(e) { console.error(e); }
+      };
+      sync();
+    }
   }, []);
 
-  const handleUpdateProfile = async (p: SchoolProfile) => {
-    setSchoolProfile(p);
-    if(db) await setDoc(doc(db, 'settings', 'schoolProfile'), p);
-  };
-  
-  const handleUpdateClass = async (c: ClassData) => {
-    setClasses(prev => prev.map(cls => cls.id === c.id ? c : cls));
-    if(db) await setDoc(doc(db, 'classes', c.id), c);
-  };
-
-  const handleSaveStudent = async (s: Student) => {
-    setStudents(prev => {
-        const idx = prev.findIndex(st => st.id === s.id);
-        if (idx >= 0) { const copy = [...prev]; copy[idx] = s; return copy; }
-        return [...prev, s];
-    });
-    if(db) await setDoc(doc(db, 'students', s.id), s);
-  };
-
-  const handleDeleteStudent = async (id: string) => {
-    setStudents(prev => prev.filter(s => s.id !== id));
-    if(db) await deleteDoc(doc(db, 'students', id));
-  };
-
-  const handleSaveExtra = async (e: ExtraContent) => {
-    setExtras(prev => {
-        const idx = prev.findIndex(ex => ex.id === e.id);
-        if (idx >= 0) { const copy = [...prev]; copy[idx] = e; return copy; }
-        return [...prev, e];
-    });
-    if(db) await setDoc(doc(db, 'extras', e.id), e);
-  };
-
-  const handleDeleteExtra = async (id: string) => {
-    setExtras(prev => prev.filter(e => e.id !== id));
-    if(db) await deleteDoc(doc(db, 'extras', id));
-  };
-
-  const onUpdateChapterByGrade = async (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
-      const newClasses = classes.map(cls => {
-          if (cls.gradeLevel !== grade) return cls;
-          const newSems = cls.semesters.map(sem => {
-              if (sem.id !== semId) return sem;
-              const newChaps = sem.chapters.map(ch => ch.id === chapId ? { ...ch, ...data } : ch);
-              return { ...sem, chapters: newChaps };
-          });
-          return { ...cls, semesters: newSems };
-      });
-      setClasses(newClasses);
-      if (db) {
-          const batch = writeBatch(db);
-          newClasses.filter(c => c.gradeLevel === grade).forEach(c => batch.set(doc(db, 'classes', c.id), c));
-          await batch.commit();
+  // Handlers
+  const handleUpdateChapter = (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
+    setClasses(prev => prev.map(c => {
+      if (c.gradeLevel === grade) {
+        return {
+          ...c,
+          semesters: c.semesters.map(s => {
+            if (s.id === semId) {
+              return {
+                ...s,
+                chapters: s.chapters.map(ch => ch.id === chapId ? { ...ch, ...data } : ch)
+              };
+            }
+            return s;
+          })
+        };
       }
+      return c;
+    }));
   };
 
-  const onUpdateClassResourceByGrade = async (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semId?: string) => {
-      const newClasses = classes.map(cls => {
-          if (cls.gradeLevel !== grade) return cls;
-          let updatedCls = { ...cls };
-          if (type === 'schedule') updatedCls.schedule = item;
-          else if (semId) {
-              updatedCls.semesters = cls.semesters.map(s => {
-                  if (s.id !== semId) return s;
-                  if (type === 'grades') return { ...s, grades: item };
-                  if (type === 'exam') {
-                      const exams = s.exams ? [...s.exams] : [];
-                      const idx = exams.findIndex(e => e.id === item.id);
-                      if (idx >= 0) exams[idx] = item; else exams.push(item);
-                      return { ...s, exams };
-                  }
-                  return s;
-              });
+  const handleUpdateResource = (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semId?: string) => {
+      // For simplicity, update all classes of that grade
+      setClasses(prev => prev.map(c => {
+          if (c.gradeLevel === grade) {
+              if (type === 'exam' && semId) {
+                  return {
+                      ...c,
+                      semesters: c.semesters.map(s => {
+                          if (s.id === semId) {
+                              const exams = s.exams ? [...s.exams] : [];
+                              const idx = exams.findIndex(e => e.id === item.id);
+                              if (idx > -1) exams[idx] = item;
+                              else exams.push(item);
+                              return { ...s, exams };
+                          }
+                          return s;
+                      })
+                  };
+              }
+              // Schedule and grades are usually updated via onUpdateClass directly in dashboard for specific class
+              // But if called via this handler:
+              if (type === 'schedule') return { ...c, schedule: item };
           }
-          return updatedCls;
-      });
-      setClasses(newClasses);
-      if (db) {
-          const batch = writeBatch(db);
-          newClasses.filter(c => c.gradeLevel === grade).forEach(c => batch.set(doc(db, 'classes', c.id), c));
-          await batch.commit();
-      }
+          return c;
+      }));
+  };
+
+  const renderContent = () => {
+    switch (view) {
+      case ViewState.LANDING:
+        return <LandingView 
+          onSelectClass={(id) => { setSelectedClassId(id); setView(ViewState.STUDENT_LOGIN); }}
+          onAdminLogin={() => setView(ViewState.ADMIN_LOGIN)}
+          onSelectCategory={(cat) => { setSelectedCategory(cat); setView(ViewState.EXTRA_CATEGORY_LIST); }}
+          classes={classes}
+          extras={extras}
+          profile={schoolProfile}
+        />;
+      case ViewState.STUDENT_LOGIN:
+        return <StudentLoginView 
+           initialClassId={selectedClassId}
+           classes={classes}
+           students={students}
+           onLoginSuccess={(s, cId) => { 
+             setCurrentUser(s); 
+             setSelectedClassId(cId); 
+             setView(ViewState.CLASS_DETAIL);
+             // FIX: Scroll to top after successful login
+             window.scrollTo(0, 0);
+           }}
+           onBack={() => setView(ViewState.LANDING)}
+        />;
+      case ViewState.CLASS_DETAIL:
+        const cls = classes.find(c => c.id === selectedClassId);
+        return cls ? <ClassDetailView 
+           classData={cls}
+           student={currentUser}
+           onBack={() => { setCurrentUser(null); setView(ViewState.STUDENT_LOGIN); }}
+           onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }}
+        /> : <div>Loading...</div>;
+      case ViewState.CHAPTER_CONTENT:
+        const cls2 = classes.find(c => c.id === selectedClassId);
+        let chapter = null;
+        cls2?.semesters.forEach(s => s.chapters.forEach(c => { if (c.id === selectedChapterId) chapter = c; }));
+        return chapter ? <ChapterContentView chapter={chapter} onBack={() => setView(ViewState.CLASS_DETAIL)} /> : <div>Loading...</div>;
+      case ViewState.ADMIN_LOGIN:
+        return <AdminLoginView onLogin={() => setView(ViewState.ADMIN_DASHBOARD)} onBack={() => setView(ViewState.LANDING)} />;
+      case ViewState.ADMIN_DASHBOARD:
+        return <AdminDashboardView 
+           classes={classes}
+           schoolProfile={schoolProfile}
+           students={students}
+           extras={extras}
+           onUpdateChapterByGrade={handleUpdateChapter}
+           onUpdateClassResourceByGrade={handleUpdateResource}
+           onUpdateClass={(c) => setClasses(prev => prev.map(p => p.id === c.id ? c : p))}
+           onUpdateProfile={(p) => setSchoolProfile(p)}
+           onSaveStudent={(s) => setStudents(prev => { const idx = prev.findIndex(p => p.id === s.id); if (idx > -1) { const n = [...prev]; n[idx] = s; return n; } return [...prev, s]; })}
+           onDeleteStudent={(id) => setStudents(prev => prev.filter(s => s.id !== id))}
+           onSaveExtra={(e) => setExtras(prev => { const idx = prev.findIndex(p => p.id === e.id); if (idx > -1) { const n = [...prev]; n[idx] = e; return n; } return [...prev, e]; })}
+           onDeleteExtra={(id) => setExtras(prev => prev.filter(e => e.id !== id))}
+           onLogout={() => setView(ViewState.LANDING)}
+        />;
+      case ViewState.EXTRA_CATEGORY_LIST:
+        const filteredExtras = extras.filter(e => e.category === selectedCategory);
+        return (
+           <div className="max-w-4xl mx-auto px-4 py-12">
+              <Button variant="secondary" onClick={() => setView(ViewState.LANDING)} className="mb-8"><ArrowLeft size={16}/> Kembali</Button>
+              <SectionTitle title={selectedCategory ? `Pojok ${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)}` : 'Pojok Literasi'} subtitle="Klik pada judul untuk melihat isi konten." />
+              <div className="space-y-4">
+                 {filteredExtras.map(ex => (
+                    <Card key={ex.id} className="p-0 overflow-hidden transition-all duration-300">
+                       <button 
+                          onClick={() => setExpandedExtraId(expandedExtraId === ex.id ? null : ex.id)}
+                          className={`w-full flex items-center justify-between p-6 text-left transition-colors ${expandedExtraId === ex.id ? 'bg-blue-50' : 'bg-white hover:bg-gray-50'}`}
+                       >
+                          <div className="flex items-center gap-4">
+                             <div className={`p-2 rounded-lg ${expandedExtraId === ex.id ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
+                                {ex.type === 'link' ? (ex.url?.includes('youtu') ? <Youtube size={20}/> : <LinkIcon size={20}/>) : <FileText size={20}/>}
+                             </div>
+                             <span className={`font-bold text-lg ${expandedExtraId === ex.id ? 'text-blue-900' : 'text-gray-800'}`}>{ex.title}</span>
+                          </div>
+                          <ChevronDown size={20} className={`text-gray-400 transition-transform duration-300 ${expandedExtraId === ex.id ? 'rotate-180' : ''}`} />
+                       </button>
+                       <AnimatePresence>
+                          {expandedExtraId === ex.id && (
+                             <motion.div 
+                               initial={{ height: 0, opacity: 0 }}
+                               animate={{ height: 'auto', opacity: 1 }}
+                               exit={{ height: 0, opacity: 0 }}
+                               className="border-t border-gray-100 bg-white"
+                             >
+                                <div className="p-6">
+                                   {ex.type === 'link' ? (
+                                      ex.url?.includes('youtube') ? 
+                                      <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(ex.url)}`} className="w-full h-[300px] md:h-[450px]" allowFullScreen></iframe></div> : 
+                                      <a href={ex.url} target="_blank" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors"><LinkIcon size={18}/> Buka Tautan Eksternal</a>
+                                   ) : (
+                                      <RichHtmlContent content={ex.content || ''} iframeHeight="h-auto min-h-[300px]"/>
+                                   )}
+                                </div>
+                             </motion.div>
+                          )}
+                       </AnimatePresence>
+                    </Card>
+                 ))}
+                 {filteredExtras.length === 0 && <div className="text-center py-12 text-gray-400 italic bg-white rounded-3xl border border-dashed border-gray-200">Belum ada konten untuk kategori ini.</div>}
+              </div>
+           </div>
+        );
+      default: return <div>404</div>;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] font-sans text-gray-900">
-        {view !== ViewState.ADMIN_DASHBOARD && (
-            <Navbar goHome={() => setView(ViewState.LANDING)} goAdmin={view === ViewState.LANDING ? () => setView(ViewState.ADMIN_LOGIN) : undefined} schoolName={schoolProfile.name}/>
-        )}
-        
-        <AnimatePresence mode="wait">
-            <motion.div key={view} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}>
-                {view === ViewState.LANDING && (
-                    <LandingView 
-                        classes={classes} 
-                        extras={extras} 
-                        profile={schoolProfile} 
-                        onSelectClass={(id) => { setSelectedClassId(id); setView(ViewState.STUDENT_LOGIN); }}
-                        onAdminLogin={() => setView(ViewState.ADMIN_LOGIN)}
-                        onSelectCategory={(cat) => { setSelectedCategory(cat); setView(ViewState.EXTRA_CATEGORY_LIST); }}
-                    />
-                )}
-                {view === ViewState.STUDENT_LOGIN && (
-                    <StudentLoginView 
-                        initialClassId={selectedClassId}
-                        classes={classes}
-                        students={students}
-                        onBack={() => setView(ViewState.LANDING)}
-                        onLoginSuccess={(s, cId) => { setCurrentUser(s); setSelectedClassId(cId); setView(ViewState.CLASS_DETAIL); }}
-                    />
-                )}
-                {view === ViewState.CLASS_DETAIL && selectedClassId && (
-                    <ClassDetailView 
-                        classData={classes.find(c => c.id === selectedClassId)!}
-                        student={currentUser}
-                        onBack={() => { setCurrentUser(null); setView(ViewState.LANDING); }}
-                        onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }}
-                    />
-                )}
-                {view === ViewState.CHAPTER_CONTENT && selectedClassId && selectedChapterId && (
-                    <ChapterContentView 
-                        chapter={classes.find(c => c.id === selectedClassId)?.semesters.flatMap(s => s.chapters).find(ch => ch.id === selectedChapterId)!}
-                        onBack={() => setView(ViewState.CLASS_DETAIL)}
-                    />
-                )}
-                {view === ViewState.ADMIN_LOGIN && (
-                    <AdminLoginView onLogin={() => setView(ViewState.ADMIN_DASHBOARD)} onBack={() => setView(ViewState.LANDING)}/>
-                )}
-                {view === ViewState.ADMIN_DASHBOARD && (
-                    <AdminDashboardView 
-                        classes={classes}
-                        schoolProfile={schoolProfile}
-                        students={students}
-                        extras={extras}
-                        onLogout={() => setView(ViewState.LANDING)}
-                        onUpdateProfile={handleUpdateProfile}
-                        onUpdateClass={handleUpdateClass}
-                        onSaveStudent={handleSaveStudent}
-                        onDeleteStudent={handleDeleteStudent}
-                        onSaveExtra={handleSaveExtra}
-                        onDeleteExtra={handleDeleteExtra}
-                        onUpdateChapterByGrade={onUpdateChapterByGrade}
-                        onUpdateClassResourceByGrade={onUpdateClassResourceByGrade}
-                    />
-                )}
-                {view === ViewState.EXTRA_CATEGORY_LIST && (
-                    <div className="max-w-6xl mx-auto px-4 py-8">
-                        <Button variant="secondary" onClick={() => setView(ViewState.LANDING)} className="mb-8"><ArrowLeft size={16}/> Kembali</Button>
-                        <SectionTitle title={selectedCategory ? `Pojok ${selectedCategory.toUpperCase()}` : 'Pojok Literasi'} />
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {extras.filter(e => e.category === selectedCategory).map(item => (
-                                <Card key={item.id} onClick={() => { if(item.type==='link' && item.url) window.open(item.url, '_blank'); }}>
-                                    <h3 className="font-bold text-lg mb-2">{item.title}</h3>
-                                    {item.type === 'html' && <RichHtmlContent content={item.content || ''} className="line-clamp-4 max-h-32 overflow-hidden"/>}
-                                    {item.type === 'link' && <div className="text-blue-500 flex items-center gap-2 mt-4 font-semibold"><ExternalLink size={16}/> Buka Konten</div>}
-                                </Card>
-                            ))}
-                            {extras.filter(e => e.category === selectedCategory).length === 0 && <p className="col-span-full text-center text-gray-500 italic">Belum ada konten untuk kategori ini.</p>}
-                        </div>
-                    </div>
-                )}
-            </motion.div>
-        </AnimatePresence>
-        
-        {view !== ViewState.ADMIN_DASHBOARD && <Footer onAdminClick={() => setView(ViewState.ADMIN_LOGIN)} profile={schoolProfile}/>}
+    <div className="min-h-screen bg-[#F8FAFC]">
+       {view !== ViewState.ADMIN_DASHBOARD && (
+          <>
+            <Navbar goHome={() => setView(ViewState.LANDING)} goAdmin={view === ViewState.LANDING ? () => setView(ViewState.ADMIN_LOGIN) : undefined} schoolName={schoolProfile.name} />
+            <AnimatePresence mode="wait">
+               <motion.div key={view} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="pt-20">
+                  {renderContent()}
+               </motion.div>
+            </AnimatePresence>
+            <Footer onAdminClick={() => setView(ViewState.ADMIN_LOGIN)} profile={schoolProfile} />
+          </>
+       )}
+       {view === ViewState.ADMIN_DASHBOARD && renderContent()}
     </div>
   );
 };
