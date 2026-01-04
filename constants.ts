@@ -32,6 +32,58 @@ export const FEATURES = [
   }
 ];
 
+// Data Kurikulum PAI Realistis
+const PAI_CURRICULUM: any = {
+  '7': {
+    'ganjil': [
+      "Al-Qur'an dan Hadis (Asmaul Husna)",
+      "Hidup Tenang dengan Kejujuran, Amanah, dan Istiqamah",
+      "Semua Bersih Hidup Jadi Nyaman (Thaharah)",
+      "Indahnya Kebersamaan dengan Shalat Berjamaah",
+      "Selamat Datang Nabi Kekasihku (Sejarah Nabi di Mekkah)"
+    ],
+    'genap': [
+      "Penerapan Hukum Bacaan Alif Lam",
+      "Ingin Meneladani Ketaatan Malaikat-Malaikat Allah",
+      "Berempati itu Mudah, Menghormati itu Indah",
+      "Memupuk Rasa Persatuan pada Hari yang Dinanti (Shalat Jumat)",
+      "Islam Memberikan Kemudahan melalui Shalat Jamak dan Qashar"
+    ]
+  },
+  '8': {
+    'ganjil': [
+      "Meghindari Minuman Keras, Judi, dan Pertengkaran",
+      "Meneladani Kitab-Kitab Allah SWT",
+      "Berjiwa Rendah Hati, Hemat, dan Sederhana",
+      "Ibadah Shalat Sunnah Berjamaah dan Munfarid",
+      "Jiwa Lebih Tenang dengan Banyak Sujud"
+    ],
+    'genap': [
+      "Menghindari Perilaku Tercela (Miras, Judi, Pertengkaran)",
+      "Mengenal Rasul-Rasul Allah",
+      "Penerapan Ilmu Tajwid dalam Membaca Al-Qur'an",
+      "Ketentuan Makanan dan Minuman yang Halal dan Haram",
+      "Sejarah Pertumbuhan Ilmu Pengetahuan pada Masa Bani Umayyah"
+    ]
+  },
+  '9': {
+    'ganjil': [
+      "Meyakini Hari Akhir, Mengakhiri Kebiasaan Buruk",
+      "Menatap Masa Depan dengan Optimis, Ikhtiar, dan Tawakal",
+      "Mengasah Pribadi Unggul dengan Jujur, Santun, dan Malu",
+      "Zakat Fitrah dan Zakat Mal",
+      "Dahsyatnya Persatuan dalam Ibadah Haji dan Umrah"
+    ],
+    'genap': [
+      "Iman kepada Qada dan Qadar",
+      "Penyembelihan Hewan dalam Islam",
+      "Ibadah Qurban dan Aqiqah",
+      "Sejarah Perkembangan Islam di Nusantara",
+      "Adab dan Tradisi Islam di Nusantara"
+    ]
+  }
+};
+
 // Helper to create simple default content
 const createDefaultContent = (idPrefix: string) => ({
   contents: [
@@ -41,7 +93,7 @@ const createDefaultContent = (idPrefix: string) => ({
       type: 'html' as const,
       content: `
         <p>Assalamualaikum Warahmatullahi Wabarakatuh. Materi ini sedang disiapkan oleh Bapak/Ibu Guru.</p>
-        <p>Silakan cek kembali secara berkala.</p>
+        <p>Silakan cek kembali secara berkala untuk mendapatkan update materi terbaru di bab ini.</p>
       `
     }
   ],
@@ -50,10 +102,11 @@ const createDefaultContent = (idPrefix: string) => ({
 });
 
 const createChapters = (grade: string, sem: string): Chapter[] => {
-  return Array.from({ length: 5 }).map((_, i) => ({
+  const titles = PAI_CURRICULUM[grade][sem] || [];
+  return titles.map((title: string, i: number) => ({
     id: `${grade}-${sem}-${i + 1}`,
-    title: `Bab ${i + 1}: Materi PAI Kelas ${grade}`,
-    description: `Pembahasan mendalam mengenai topik Bab ${i + 1} untuk semester ${sem}.`,
+    title: `Bab ${i + 1}: ${title}`,
+    description: `Pembahasan materi PAI Kelas ${grade} tentang ${title}.`,
     progress: 0,
     ...createDefaultContent(`${grade}-${sem}-${i + 1}`)
   }));
