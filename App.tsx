@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -47,7 +46,8 @@ import {
   Filter,
   Phone,
   UserCog,
-  User
+  User,
+  Quote
 } from 'lucide-react';
 
 // Import Firebase
@@ -200,7 +200,7 @@ const PrayerTimesWidget: React.FC = () => {
 
 // --- Components ---
 
-const RobotGreeting = () => (
+const RobotGreeting: React.FC<{ greetingText: string }> = ({ greetingText }) => (
   <div className="max-w-4xl mx-auto mb-10 flex flex-col md:flex-row items-center gap-6 animate-fade-in-up">
     <div className="relative group cursor-pointer">
        <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-16 h-8 bg-gray-900 rounded-t-lg z-20 shadow-md"></div>
@@ -213,8 +213,8 @@ const RobotGreeting = () => (
        </div>
     </div>
     <div className="bg-white/80 backdrop-blur-md p-6 rounded-2xl rounded-tl-none border border-white/50 shadow-lg flex-1 transform transition-transform hover:scale-[1.01]">
-       <p className="text-gray-700 font-medium leading-relaxed italic text-lg">
-         "Assalamu’alaikum Warahmatullahi Wabarakatuh. Selamat datang di LMS Pendidikan Agama Islam. Mari belajar memahami Islam secara utuh, menumbuhkan iman, memperkuat akhlak, dan mengamalkan nilai-nilai kebaikan dalam kehidupan sehari-hari."
+       <p className="text-gray-700 font-medium leading-relaxed italic text-lg whitespace-pre-line">
+         "{greetingText || 'Selamat datang di LMS PAI.'}"
        </p>
     </div>
   </div>
@@ -315,16 +315,35 @@ const LandingView: React.FC<{
   onSelectCategory: (category: ExtraCategory) => void;
   classes: ClassData[];
   extras: ExtraContent[];
-}> = ({ onSelectClass, onAdminLogin, onSelectCategory, classes }) => {
+  profile: SchoolProfile;
+}> = ({ onSelectClass, onAdminLogin, onSelectCategory, classes, profile }) => {
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  // Safety check for quotes array
+  const activeQuotes = (profile && profile.quotes && profile.quotes.length > 0) 
+    ? profile.quotes 
+    : DEFAULT_SCHOOL_PROFILE.quotes;
+
+  useEffect(() => {
+    if (activeQuotes.length > 0) {
+      const interval = setInterval(() => {
+        setQuoteIndex((prev) => (prev + 1) % activeQuotes.length);
+      }, 7000);
+      return () => clearInterval(interval);
+    }
+  }, [activeQuotes]);
+
   const groupedClasses = classes.reduce((acc, curr) => {
     const grade = curr.gradeLevel;
     if (!acc[grade]) acc[grade] = [];
     acc[grade].push(curr);
     return acc;
   }, {} as Record<string, ClassData[]>);
+
   const toggleGrade = (grade: string) => setExpandedGrade(expandedGrade === grade ? null : grade);
   const scrollToIntro = () => document.getElementById('login-section')?.scrollIntoView({ behavior: 'smooth' });
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-24 pb-12">
       <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden">
@@ -335,7 +354,7 @@ const LandingView: React.FC<{
         </div>
         <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8 }}>
-            <RobotGreeting /><PrayerTimesWidget />
+            <RobotGreeting greetingText={profile.greetingText}/><PrayerTimesWidget />
             <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter mb-8 leading-[1.1] text-gray-900 relative z-10 drop-shadow-sm">
               PAI Digital: <br className="hidden md:block" />
               <span className="relative inline-block mt-2 md:mt-0">
@@ -351,17 +370,35 @@ const LandingView: React.FC<{
               <Button onClick={onAdminLogin} variant="secondary" className="w-full sm:w-auto text-lg px-8 py-4 shadow-2xl hover:scale-105 transform transition-all duration-300 rounded-2xl flex items-center gap-3"><UserCog size={20}/> Login Guru</Button>
             </div>
           </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-24 relative p-8 md:p-10 bg-white/40 backdrop-blur-xl rounded-[2rem] border border-white/50 shadow-2xl inline-block max-w-2xl mx-auto">
+          
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="mt-24 relative p-8 md:p-10 bg-white/40 backdrop-blur-xl rounded-[2rem] border border-white/50 shadow-2xl inline-block w-full max-w-2xl mx-auto overflow-hidden">
             <TrafficLights />
-            <div className="mt-4">
+            <div className="mt-4 min-h-[160px] flex flex-col justify-center">
                 <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur p-3 rounded-full border border-white shadow-sm"><Moon className="text-blue-500" size={24} fill="currentColor" /></div>
-                <p className="font-serif italic text-2xl text-gray-700 leading-relaxed mb-6 mt-4">"Jadilah seperti bunga yang memberikan keharuman bahkan kepada tangan yang telah merusaknya."</p>
-                <div className="w-16 h-1.5 bg-gradient-to-r from-blue-400 to-green-400 rounded-full mx-auto mb-3"></div>
-                <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">– Ali bin Abi Thalib</p>
+                
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={quoteIndex}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.8 }}
+                    className="space-y-6"
+                  >
+                    <Quote className="mx-auto text-blue-200" size={32} />
+                    <p className="font-serif italic text-xl md:text-2xl text-gray-700 leading-relaxed">
+                      "{activeQuotes[quoteIndex] || 'Bismillah.'}"
+                    </p>
+                  </motion.div>
+                </AnimatePresence>
+
+                <div className="w-16 h-1.5 bg-gradient-to-r from-blue-400 to-green-400 rounded-full mx-auto mb-3 mt-8"></div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Kalam Hikmah Hari Ini</p>
             </div>
           </motion.div>
         </div>
       </section>
+      
       <section id="login-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionTitle title="Login Siswa: Pilih Kelasmu" subtitle="Klik pada kelas yang sesuai untuk masuk ke halaman absensi dan materi." center />
         <div className="max-w-3xl mx-auto space-y-4">
@@ -602,16 +639,12 @@ const ChapterContentView: React.FC<{ chapter: Chapter; onBack: () => void }> = (
 
 // --- Admin Components ---
 
-/**
- * AdminLoginView component for handle teacher authentication
- */
 const AdminLoginView: React.FC<{ onLogin: () => void; onBack: () => void }> = ({ onLogin, onBack }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple password check for demonstration purposes
     if (password === 'admin123') {
       onLogin();
     } else {
@@ -652,65 +685,37 @@ const AdminLoginView: React.FC<{ onLogin: () => void; onBack: () => void }> = ({
   );
 };
 
-/**
- * AdminContentEditor component for editing Chapter content details
- */
 const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: Chapter) => void }> = ({ chapter, onSave }) => {
   const [formData, setFormData] = useState<Chapter>(chapter);
-
-  useEffect(() => {
-    setFormData(chapter);
-  }, [chapter]);
-
-  const handleSave = () => {
-    onSave(formData);
-    alert('Perubahan materi bab berhasil disimpan!');
-  };
-
+  useEffect(() => { setFormData(chapter); }, [chapter]);
+  const handleSave = () => { onSave(formData); alert('Perubahan materi bab berhasil disimpan!'); };
   const addContent = () => {
     const newSection: ContentSection = { id: `section-${Date.now()}`, title: 'Sub Bab Baru', type: 'html', content: '' };
     setFormData({ ...formData, contents: [...formData.contents, newSection] });
   };
-
   const updateContent = (id: string, updates: Partial<ContentSection>) => {
-    setFormData({
-      ...formData,
-      contents: formData.contents.map(c => c.id === id ? { ...c, ...updates } : c)
-    });
+    setFormData({ ...formData, contents: formData.contents.map(c => c.id === id ? { ...c, ...updates } : c) });
   };
-
   const deleteContent = (id: string) => {
     setFormData({ ...formData, contents: formData.contents.filter(c => c.id !== id) });
   };
-
   const addVideo = () => {
     const newItem: ResourceItem = { id: `video-${Date.now()}`, title: 'Video Baru', type: 'link', url: '' };
     setFormData({ ...formData, videos: [...formData.videos, newItem] });
   };
-
   const updateVideo = (id: string, updates: Partial<ResourceItem>) => {
-    setFormData({
-      ...formData,
-      videos: formData.videos.map(v => v.id === id ? { ...v, ...updates } : v)
-    });
+    setFormData({ ...formData, videos: formData.videos.map(v => v.id === id ? { ...v, ...updates } : v) });
   };
-
   const deleteVideo = (id: string) => {
     setFormData({ ...formData, videos: formData.videos.filter(v => v.id !== id) });
   };
-
   const addQuiz = () => {
     const newItem: ResourceItem = { id: `quiz-${Date.now()}`, title: 'Kuis Baru', type: 'link', url: '' };
     setFormData({ ...formData, quizzes: [...formData.quizzes, newItem] });
   };
-
   const updateQuiz = (id: string, updates: Partial<ResourceItem>) => {
-    setFormData({
-      ...formData,
-      quizzes: formData.quizzes.map(q => q.id === id ? { ...q, ...updates } : q)
-    });
+    setFormData({ ...formData, quizzes: formData.quizzes.map(q => q.id === id ? { ...q, ...updates } : q) });
   };
-
   const deleteQuiz = (id: string) => {
     setFormData({ ...formData, quizzes: formData.quizzes.filter(q => q.id !== id) });
   };
@@ -721,12 +726,10 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
         <h2 className="text-xl font-bold">Edit Materi: {formData.title}</h2>
         <Button onClick={handleSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan Semua</Button>
       </div>
-
       <div className="space-y-4">
         <Input label="Judul Bab" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
         <TextArea label="Deskripsi Singkat" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
       </div>
-
       <div className="space-y-4">
         <div className="flex justify-between items-center border-t pt-4">
           <h3 className="font-bold flex items-center gap-2"><BookOpen size={18} /> Bagian Materi (HTML/Tautan)</h3>
@@ -752,7 +755,6 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
           </div>
         ))}
       </div>
-
       <div className="space-y-4">
         <div className="flex justify-between items-center border-t pt-4">
           <h3 className="font-bold flex items-center gap-2"><Youtube size={18} /> Video Pembelajaran</h3>
@@ -766,7 +768,6 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
           </div>
         ))}
       </div>
-
       <div className="space-y-4">
         <div className="flex justify-between items-center border-t pt-4">
           <h3 className="font-bold flex items-center gap-2"><Gamepad size={18} /> Kuis Interaktif</h3>
@@ -799,20 +800,23 @@ const AdminDashboardView: React.FC<{
   onDeleteExtra: (id: string) => void;
   onLogout: () => void;
 }> = ({ classes, schoolProfile, students, extras, onUpdateChapterByGrade, onUpdateClassResourceByGrade, onUpdateClass, onUpdateProfile, onSaveStudent, onDeleteStudent, onSaveExtra, onDeleteExtra, onLogout }) => {
-  const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras' | 'schedule'>('profile');
+  const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras' | 'schedule' | 'personalization'>('profile');
   const [profileForm, setProfileForm] = useState(schoolProfile);
-  const handleProfileSave = () => { onUpdateProfile(profileForm); alert('Profil Sekolah diperbarui!'); };
+  const handleProfileSave = () => { onUpdateProfile(profileForm); alert('Konfigurasi diperbarui!'); };
+  
   const [studentForm, setStudentForm] = useState<Partial<Student>>({ classId: '7A', gender: 'L' });
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [filterClass, setFilterClass] = useState<string>('all');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const handleStudentSave = () => {
     if (!studentForm.name || !studentForm.nis) return alert("Nama dan NIS wajib diisi");
-    const studentData: Student = { id: editingStudentId || Date.now().toString(), name: studentForm.name, nis: studentForm.nis, classId: studentForm.classId || '7A', gender: studentForm.gender || 'L' };
+    const studentData: Student = { id: editingStudentId || Date.now().toString(), name: studentForm.name!, nis: studentForm.nis!, classId: studentForm.classId || '7A', gender: studentForm.gender || 'L' };
     onSaveStudent(studentData);
     setEditingStudentId(null);
     setStudentForm({ classId: '7A', gender: 'L', name: '', nis: '' });
   };
+  
   const handleStudentEdit = (s: Student) => { setEditingStudentId(s.id); setStudentForm(s); };
   const handleStudentDelete = (id: string) => { if (confirm('Hapus siswa ini?')) onDeleteStudent(id); };
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -841,9 +845,11 @@ const AdminDashboardView: React.FC<{
       };
       reader.readAsBinaryString(file);
   };
+  
   const filteredStudents = students.filter(s => filterClass === 'all' || s.classId === filterClass);
   const [extraForm, setExtraForm] = useState<Partial<ExtraContent>>({ category: 'doa', type: 'link' });
   const [editingExtraId, setEditingExtraId] = useState<string | null>(null);
+  
   const handleExtraSave = () => {
     if (!extraForm.title) return alert("Judul wajib diisi");
     const newExtra: ExtraContent = { id: editingExtraId || Date.now().toString(), title: extraForm.title!, category: extraForm.category || 'doa', type: extraForm.type || 'link', url: extraForm.url || '', content: extraForm.content || '' };
@@ -851,6 +857,7 @@ const AdminDashboardView: React.FC<{
     setEditingExtraId(null);
     setExtraForm({ category: 'doa', type: 'link', title: '', url: '', content: '' });
   };
+  
   const handleExtraEdit = (item: ExtraContent) => { setEditingExtraId(item.id); setExtraForm(item); };
   const handleExtraDelete = (id: string) => { if (confirm('Hapus konten ini?')) onDeleteExtra(id); };
 
@@ -910,11 +917,14 @@ const AdminDashboardView: React.FC<{
 
   const adminTabs = [
     { id: 'profile', label: 'Profil Sekolah', icon: <School size={18}/> },
+    { id: 'personalization', label: 'Personalisasi Beranda', icon: <Quote size={18}/> },
     { id: 'content', label: 'Manajemen Materi', icon: <BookOpen size={18}/> },
     { id: 'schedule', label: 'Jadwal & Nilai', icon: <CalendarRange size={18}/> },
     { id: 'students', label: 'Data Siswa', icon: <Users size={18}/> },
     { id: 'extras', label: 'Pojok Literasi', icon: <Sparkles size={18}/> },
   ];
+
+  const categories: ExtraCategory[] = ['doa', 'cerita', 'sholat', 'fiqih', 'hadist', 'ramadhan', 'lainnya'];
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -946,6 +956,49 @@ const AdminDashboardView: React.FC<{
                   <div className="mt-6 flex justify-end"><Button onClick={handleProfileSave}><Save size={18} /> Simpan Perubahan</Button></div>
                </Card>
              )}
+
+             {tab === 'personalization' && (
+               <Card>
+                  <SectionTitle title="Personalisasi Beranda" subtitle="Atur teks salam pembuka dan kata-kata motivasi yang muncul di halaman depan." />
+                  
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MessageCircle size={20} className="text-blue-600"/> Teks Ucapan Salam Robot</h3>
+                      <TextArea 
+                        label="Pesan Pembuka (Tampil di Robot)" 
+                        value={profileForm.greetingText || ''} 
+                        onChange={e => setProfileForm({...profileForm, greetingText: e.target.value})} 
+                        placeholder="Contoh: Assalamualaikum Warahmatullahi Wabarakatuh..."
+                        className="min-h-[120px]"
+                      />
+                    </div>
+
+                    <div className="border-t pt-8">
+                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Quote size={20} className="text-blue-600"/> 5 Kata Motivasi (Akan tampil bergantian)</h3>
+                      <div className="space-y-4">
+                        {[0, 1, 2, 3, 4].map((idx) => (
+                          <Input 
+                            key={idx}
+                            label={`Kata Motivasi #${idx + 1}`}
+                            value={(profileForm.quotes && profileForm.quotes[idx]) || ''}
+                            onChange={e => {
+                              const newQuotes = profileForm.quotes ? [...profileForm.quotes] : ['', '', '', '', ''];
+                              newQuotes[idx] = e.target.value;
+                              setProfileForm({...profileForm, quotes: newQuotes});
+                            }}
+                            placeholder="Tuliskan kata mutiara atau kutipan hadits..."
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 pt-6 border-t flex justify-end">
+                    <Button onClick={handleProfileSave}><Save size={18} /> Simpan Pengaturan Beranda</Button>
+                  </div>
+               </Card>
+             )}
+
              {tab === 'students' && (
                <Card>
                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
@@ -982,37 +1035,45 @@ const AdminDashboardView: React.FC<{
                   </div>
                </Card>
              )}
+
              {tab === 'schedule' && (
                 <Card>
                     <SectionTitle title="Pengaturan Jadwal & Nilai" subtitle="Kelola jadwal pelajaran dan rekap nilai per semester per kelas." />
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div>
                             <h3 className="font-bold mb-4">1. Pilih Kelas</h3>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6">
-                                {classes.sort((a,b)=>a.id.localeCompare(b.id)).map(c => (
-                                    <button key={c.id} onClick={() => { setSelClassId(c.id); setResourceEdit(null); }} className={`p-3 rounded-lg border text-sm font-bold transition-all ${selClassId === c.id ? `bg-blue-600 text-white` : 'bg-white text-gray-600 hover:bg-gray-50'}`}>{c.name}</button>
-                                ))}
+                            <div className="mb-6">
+                                <select 
+                                  className="w-full p-4 rounded-xl border border-gray-300 bg-white font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                  value={selClassId}
+                                  onChange={(e) => { setSelClassId(e.target.value); setResourceEdit(null); }}
+                                >
+                                  {classes.sort((a,b)=>a.id.localeCompare(b.id)).map(c => (
+                                      <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
                             </div>
+                            
                             {currentClass && (
                                 <div className="space-y-4">
                                     <h3 className="font-bold">2. Pilih Data untuk {currentClass.name}</h3>
-                                    <button onClick={() => setResourceEdit({ type: 'schedule', item: currentClass.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'link', url: '' }, parentId: currentClass.id })} className="w-full flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors">
-                                        <div className="flex items-center gap-3"><CalendarRange className="text-blue-600"/><span className="font-bold text-blue-900">Jadwal Pelajaran</span></div>
-                                        <Edit3 size={18} className="text-blue-400"/>
+                                    <button onClick={() => setResourceEdit({ type: 'schedule', item: currentClass.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'link', url: '' }, parentId: currentClass.id })} className={`w-full flex items-center justify-between p-4 border rounded-xl transition-colors ${resourceEdit?.type === 'schedule' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100'}`}>
+                                        <div className="flex items-center gap-3"><CalendarRange size={20}/><span className="font-bold">Jadwal Pelajaran</span></div>
+                                        <Edit3 size={18} className={resourceEdit?.type === 'schedule' ? 'text-white' : 'text-blue-400'}/>
                                     </button>
                                     <button onClick={() => {
                                         const semGanjil = currentClass.semesters.find(s => s.id === 'ganjil');
                                         setResourceEdit({ type: 'grades', item: semGanjil?.grades || { id: 'grd-ganjil', title: 'Rekap Nilai Ganjil', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'ganjil' });
-                                    }} className="w-full flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-xl hover:bg-green-100 transition-colors">
-                                        <div className="flex items-center gap-3"><GraduationCap className="text-green-600"/><span className="font-bold text-green-900">Nilai Semester Ganjil</span></div>
-                                        <Edit3 size={18} className="text-green-400"/>
+                                    }} className={`w-full flex items-center justify-between p-4 border rounded-xl transition-colors ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'bg-green-600 text-white border-green-600 shadow-lg' : 'bg-green-50 border-green-200 text-green-900 hover:bg-green-100'}`}>
+                                        <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Ganjil</span></div>
+                                        <Edit3 size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'text-white' : 'text-green-400'}/>
                                     </button>
                                     <button onClick={() => {
                                         const semGenap = currentClass.semesters.find(s => s.id === 'genap');
                                         setResourceEdit({ type: 'grades', item: semGenap?.grades || { id: 'grd-genap', title: 'Rekap Nilai Genap', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'genap' });
-                                    }} className="w-full flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors">
-                                        <div className="flex items-center gap-3"><GraduationCap className="text-emerald-600"/><span className="font-bold text-emerald-900">Nilai Semester Genap</span></div>
-                                        <Edit3 size={18} className="text-emerald-400"/>
+                                    }} className={`w-full flex items-center justify-between p-4 border rounded-xl transition-colors ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg' : 'bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100'}`}>
+                                        <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Genap</span></div>
+                                        <Edit3 size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'text-white' : 'text-emerald-400'}/>
                                     </button>
                                 </div>
                             )}
@@ -1025,27 +1086,31 @@ const AdminDashboardView: React.FC<{
                                         <Button onClick={handleResourceSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan</Button>
                                     </div>
                                     <div className="flex gap-4 mb-4 bg-white p-2 rounded-lg border">
-                                        <label className="flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-md transition-colors font-medium text-sm border-r">
-                                            <input type="radio" name="resType" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/>
+                                        <label className={`flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-md transition-colors font-medium text-sm ${resourceEdit.item.type === 'link' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}`}>
+                                            <input type="radio" name="resType" className="hidden" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/>
                                             <LinkIcon size={14}/> Tautan URL
                                         </label>
-                                        <label className="flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-md transition-colors font-medium text-sm">
-                                            <input type="radio" name="resType" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/>
+                                        <label className={`flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-md transition-colors font-medium text-sm ${resourceEdit.item.type === 'html' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}`}>
+                                            <input type="radio" name="resType" className="hidden" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/>
                                             <Code size={14}/> Kode HTML
                                         </label>
                                     </div>
                                     {resourceEdit.item.type === 'link' ? (
-                                        <Input label="Link Google Drive / Spreadsheet / Form" placeholder="https://docs.google.com/..." value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})}/>
+                                        <Input label="Link Dokumen" placeholder="https://docs.google.com/..." value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})}/>
                                     ) : (
-                                        <TextArea label="Input Kode HTML (Tabel / Embed)" placeholder="<table class='...'>...</table>" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="h-64 font-mono text-sm"/>
+                                        <TextArea label="Input Kode HTML" placeholder="<table class='...'>...</table>" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="h-64 font-mono text-sm"/>
                                     )}
                                     <div className="mt-4 p-3 bg-amber-50 rounded-lg text-amber-700 text-xs border border-amber-200">Tip: Gunakan "Link" jika Anda ingin siswa membuka dokumen di tab baru, gunakan "HTML" jika ingin menampilkan tabel langsung.</div>
                                 </div>
-                            ) : <div className="h-full flex items-center justify-center text-gray-400 text-center italic">Pilih kelas dan jenis data di sebelah kiri untuk mengedit.</div>}
+                            ) : <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center italic space-y-4">
+                                  <Edit3 size={48} className="opacity-20"/>
+                                  <p>Pilih kelas dan jenis data di sebelah kiri untuk mengedit.</p>
+                                </div>}
                         </div>
                     </div>
                 </Card>
              )}
+
              {tab === 'content' && (
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <Card className="lg:col-span-1 h-fit">
@@ -1083,6 +1148,7 @@ const AdminDashboardView: React.FC<{
                   </Card>
                </div>
              )}
+
              {tab === 'extras' && (
                <Card>
                  <SectionTitle title="Pojok Literasi" subtitle="Kelola konten tambahan (Doa, Cerita, Ramadhan, dll)" />
@@ -1090,13 +1156,45 @@ const AdminDashboardView: React.FC<{
                     <h3 className="font-bold text-gray-800 mb-4">{editingExtraId ? 'Edit Konten' : 'Tambah Konten Baru'}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                        <Input label="Judul" value={extraForm.title || ''} onChange={e => setExtraForm({...extraForm, title: e.target.value})} className="mb-0"/>
-                       <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori</label><select className="w-full p-3 rounded-xl border border-gray-300 bg-white" value={extraForm.category} onChange={e => setExtraForm({...extraForm, category: e.target.value as ExtraCategory})}><option value="doa">Kumpulan Do'a</option><option value="cerita">Kisah Islami</option><option value="sholat">Materi Sholat</option><option value="fiqih">Fiqih Dasar</option><option value="hadist">Hadist Pilihan</option><option value="ramadhan">Special Ramadhan</option><option value="lainnya">Lain-Lain</option></select></div>
+                       <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori</label><select className="w-full p-3 rounded-xl border border-gray-300 bg-white" value={extraForm.category} onChange={e => setExtraForm({...extraForm, category: e.target.value as ExtraCategory})}>
+                          {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
+                       </select></div>
                     </div>
                     <div className="flex gap-4 mb-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={extraForm.type === 'link'} onChange={() => setExtraForm({...extraForm, type: 'link'})}/><span className="text-sm">Link</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={extraForm.type === 'html'} onChange={() => setExtraForm({...extraForm, type: 'html'})}/><span className="text-sm">HTML</span></label></div>
                     {extraForm.type === 'link' ? <Input placeholder="Link URL" value={extraForm.url || ''} onChange={e => setExtraForm({...extraForm, url: e.target.value})} /> : <TextArea placeholder="Isi HTML" value={extraForm.content || ''} onChange={e => setExtraForm({...extraForm, content: e.target.value})} />}
                     <div className="flex gap-2"><Button onClick={handleExtraSave}>{editingExtraId ? 'Simpan' : 'Tambah'}</Button></div>
                  </div>
-                 <div className="space-y-2">{extras.map(item => (<div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:shadow-sm"><div className="flex items-center gap-3"><span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded uppercase">{item.category}</span><span className="font-medium text-gray-800">{item.title}</span></div><div className="flex gap-2"><button onClick={() => handleExtraEdit(item)} className="text-blue-500 p-1"><Edit3 size={16}/></button><button onClick={() => handleExtraDelete(item.id)} className="text-red-500 p-1"><Trash2 size={16}/></button></div></div>))}</div>
+                 
+                 <div className="space-y-8">
+                    {categories.map(cat => {
+                      const items = extras.filter(e => e.category === cat);
+                      if (items.length === 0) return null;
+                      return (
+                        <div key={cat}>
+                           <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-3 border-b pb-2 flex items-center gap-2">
+                              {cat === 'doa' && <BookHeart size={14} />}
+                              {cat === 'sholat' && <Sun size={14} />}
+                              {cat === 'cerita' && <Sparkles size={14} />}
+                              {cat} ({items.length})
+                           </h3>
+                           <div className="space-y-2">
+                              {items.map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:shadow-sm">
+                                   <div className="flex items-center gap-3">
+                                      <span className={`w-2 h-2 rounded-full ${cat === 'doa' ? 'bg-green-400' : 'bg-blue-400'}`}></span>
+                                      <span className="font-medium text-gray-800">{item.title}</span>
+                                   </div>
+                                   <div className="flex gap-2">
+                                      <button onClick={() => handleExtraEdit(item)} className="text-blue-500 p-1 hover:bg-blue-50 rounded"><Edit3 size={16}/></button>
+                                      <button onClick={() => handleExtraDelete(item.id)} className="text-red-500 p-1 hover:bg-red-50 rounded"><Trash2 size={16}/></button>
+                                   </div>
+                                </div>
+                              ))}
+                           </div>
+                        </div>
+                      );
+                    })}
+                 </div>
                </Card>
              )}
           </div>
@@ -1134,7 +1232,13 @@ const App: React.FC = () => {
         if (!db) { setIsLoading(false); return; }
         try {
             const profileSnap = await getDoc(doc(db, 'settings', 'schoolProfile'));
-            if (profileSnap.exists()) setSchoolProfile(profileSnap.data() as SchoolProfile);
+            if (profileSnap.exists()) {
+              // Merge default profile with stored data to ensure new fields exist
+              setSchoolProfile({
+                ...DEFAULT_SCHOOL_PROFILE,
+                ...profileSnap.data()
+              } as SchoolProfile);
+            }
             const classesSnap = await getDocs(collection(db, 'classes'));
             const fetchedClasses: ClassData[] = [];
             classesSnap.forEach(d => fetchedClasses.push(d.data() as ClassData));
@@ -1247,7 +1351,7 @@ const App: React.FC = () => {
       {view !== ViewState.ADMIN_DASHBOARD && <Navbar goHome={() => navigate(ViewState.LANDING)} goAdmin={() => navigate(ViewState.ADMIN_LOGIN)} schoolName={schoolProfile.name}/>}
       <div className={view !== ViewState.ADMIN_DASHBOARD ? "pt-20" : ""}>
         <AnimatePresence mode="wait">
-           {view === ViewState.LANDING && <LandingView key="landing" onSelectClass={(clsId) => navigate(ViewState.STUDENT_LOGIN, clsId)} onAdminLogin={() => navigate(ViewState.ADMIN_LOGIN)} onSelectCategory={(c) => { setSelectedCategory(c); navigate(ViewState.EXTRA_CATEGORY_LIST); }} classes={classesData} extras={extrasData}/>}
+           {view === ViewState.LANDING && <LandingView key="landing" onSelectClass={(clsId) => navigate(ViewState.STUDENT_LOGIN, clsId)} onAdminLogin={() => navigate(ViewState.ADMIN_LOGIN)} onSelectCategory={(c) => { setSelectedCategory(c); navigate(ViewState.EXTRA_CATEGORY_LIST); }} classes={classesData} extras={extrasData} profile={schoolProfile}/>}
            {view === ViewState.STUDENT_LOGIN && <StudentLoginView key="login" initialClassId={selectedClassId} classes={classesData} students={studentsData} onLoginSuccess={handleLoginSuccess} onBack={() => navigate(ViewState.LANDING)}/>}
            {view === ViewState.CLASS_DETAIL && selectedClassId && <ClassDetailView key="class-detail" classData={classesData.find(c => c.id === selectedClassId)!} student={currentUser} onBack={() => navigate(ViewState.LANDING)} onSelectChapter={(cid) => navigate(ViewState.CHAPTER_CONTENT, selectedClassId, cid)}/>}
            {view === ViewState.CHAPTER_CONTENT && activeChapter && <ChapterContentView key="chapter-content" chapter={activeChapter} onBack={() => navigate(ViewState.CLASS_DETAIL)}/>}

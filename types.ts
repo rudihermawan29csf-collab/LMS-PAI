@@ -1,3 +1,4 @@
+
 export enum ViewState {
   LANDING = 'LANDING',
   STUDENT_LOGIN = 'STUDENT_LOGIN',
@@ -12,8 +13,8 @@ export enum ViewState {
 export interface ContentSection {
   id: string;
   title: string; // Judul sub-bab / materi
-  type?: 'link' | 'html'; // Added type support
-  url?: string; // Added url support
+  type?: 'link' | 'html'; 
+  url?: string; 
   content: string; // HTML Source Code
 }
 
@@ -30,8 +31,6 @@ export interface Chapter {
   title: string;
   description: string;
   progress: number; // 0 to 100
-  
-  // New Array Structures
   contents: ContentSection[];
   videos: ResourceItem[];
   quizzes: ResourceItem[];
@@ -48,11 +47,11 @@ export interface Semester {
 export interface ClassData {
   id: string; // '7A', '7B', etc.
   name: string; // 'Kelas VII A'
-  gradeLevel: '7' | '8' | '9'; // Helper for grouping
-  color: string; // Tailwind color class base
+  gradeLevel: '7' | '8' | '9'; 
+  color: string; 
   icon: string;
-  schedule?: ResourceItem; // Jadwal Pelajaran (Specific to Class Section)
-  grades?: ResourceItem; // Monitoring Nilai (Specific to Class Section, usually per semester but can be general)
+  schedule?: ResourceItem; 
+  grades?: ResourceItem; 
   semesters: Semester[];
 }
 
@@ -62,7 +61,9 @@ export interface SchoolProfile {
   address: string;
   email: string;
   teacherName: string;
-  phoneNumber: string; // Format: 628...
+  phoneNumber: string; 
+  greetingText: string; // Teks salam di robot
+  quotes: string[]; // 5 Kata motivasi
 }
 
 export interface Student {
@@ -70,7 +71,7 @@ export interface Student {
   name: string;
   nis: string;
   gender: 'L' | 'P';
-  classId: string; // '7A', '7B', etc.
+  classId: string; 
 }
 
 export type ExtraCategory = 'doa' | 'cerita' | 'sholat' | 'fiqih' | 'hadist' | 'ramadhan' | 'lainnya';

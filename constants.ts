@@ -1,3 +1,4 @@
+
 import { ClassData, SchoolProfile, Student, ExtraContent, Chapter, Semester } from './types';
 
 export const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
@@ -6,7 +7,15 @@ export const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
   address: "Jl. Pendidikan No. 123, Pacet",
   email: "admin@smpn3pacet.sch.id",
   teacherName: "Bapak/Ibu Guru PAI",
-  phoneNumber: "6281234567890" // Ganti dengan nomor WA asli (format 62...)
+  phoneNumber: "6281234567890",
+  greetingText: "Assalamu’alaikum Warahmatullahi Wabarakatuh. Selamat datang di LMS Pendidikan Agama Islam. Mari belajar memahami Islam secara utuh, menumbuhkan iman, memperkuat akhlak, dan mengamalkan nilai-nilai kebaikan dalam kehidupan sehari-hari.",
+  quotes: [
+    "Barangsiapa yang menempuh jalan untuk mencari ilmu, maka Allah akan memudahkan baginya jalan menuju surga. (HR. Muslim)",
+    "Ilmu itu lebih baik daripada harta. Ilmu menjaga kamu, sedangkan kamu menjaga harta.",
+    "Jadilah seperti bunga yang memberikan keharuman bahkan kepada tangan yang telah merusaknya. – Ali bin Abi Thalib",
+    "Pendidikan adalah tiket ke masa depan, hari esok dimiliki oleh orang-orang yang mempersiapkan dirinya hari ini.",
+    "Bekerjalah untuk duniamu seakan-akan kamu hidup selamanya, dan beramallah untuk akhiratmu seakan-akan kamu mati besok."
+  ]
 };
 
 export const FEATURES = [
@@ -32,7 +41,6 @@ export const FEATURES = [
   }
 ];
 
-// Data Kurikulum PAI Realistis
 const PAI_CURRICULUM: any = {
   '7': {
     'ganjil': [
@@ -84,7 +92,6 @@ const PAI_CURRICULUM: any = {
   }
 };
 
-// Helper to create simple default content
 const createDefaultContent = (idPrefix: string) => ({
   contents: [
     {
@@ -116,7 +123,7 @@ const createSemester = (grade: string, id: 'ganjil' | 'genap', name: string): Se
   id,
   name,
   chapters: createChapters(grade, id),
-  exams: [] // Bank Soal starts empty
+  exams: [] 
 });
 
 const createClass = (id: string, name: string, gradeLevel: '7' | '8' | '9', color: string): ClassData => ({
@@ -131,19 +138,12 @@ const createClass = (id: string, name: string, gradeLevel: '7' | '8' | '9', colo
     type: 'html',
     content: '<p class="text-gray-500 italic">Jadwal belum diatur.</p>'
   },
-  grades: {
-    id: `grd-${id}`,
-    title: `Rekap Nilai ${name}`,
-    type: 'html',
-    content: '<p class="text-gray-500 italic">Data nilai belum tersedia.</p>'
-  },
   semesters: [
     createSemester(gradeLevel, 'ganjil', 'Semester Ganjil'),
     createSemester(gradeLevel, 'genap', 'Semester Genap')
   ]
 });
 
-// Generate Classes VII A - IX C
 export const CLASSES_DATA: ClassData[] = [
   createClass('7A', 'Kelas VII A', '7', 'blue'),
   createClass('7B', 'Kelas VII B', '7', 'blue'),
@@ -156,7 +156,6 @@ export const CLASSES_DATA: ClassData[] = [
   createClass('9C', 'Kelas IX C', '9', 'amber'),
 ];
 
-// Raw Data processing
 const RAW_STUDENTS = `1129	ABEL AULIA PASA RAMADANI	IX A	P
 1132	ADITYA FIRMANSYAH	IX A	L
 1135	AHMAD NIAM IZZI AFKAR	IX A	L
@@ -413,18 +412,14 @@ const RAW_STUDENTS = `1129	ABEL AULIA PASA RAMADANI	IX A	P
 1348	DINDA AKILA PRATIWI	VII C	P
 1353	ELINA ASTRIT YUNEDY	VII C	P`;
 
-// Parse the raw student data
 export const DEFAULT_STUDENTS: Student[] = RAW_STUDENTS.trim().split('\n').map((line, index) => {
   const parts = line.split('\t');
-  if (parts.length < 3) return null; // Accept minimal validity
-
+  if (parts.length < 3) return null; 
   const nis = parts[0]?.trim();
   const name = parts[1]?.trim();
   const classRaw = parts[2]?.trim();
   const genderRaw = parts[3]?.trim();
-
-  // Helper to normalize class names
-  let classId = '7A'; // default
+  let classId = '7A'; 
   if (classRaw) {
       const romanMap: {[key: string]: string} = { 'VII': '7', 'VIII': '8', 'IX': '9' };
       const [roman, suffix] = classRaw.split(' ');
@@ -432,7 +427,6 @@ export const DEFAULT_STUDENTS: Student[] = RAW_STUDENTS.trim().split('\n').map((
           classId = `${romanMap[roman]}${suffix || ''}`;
       }
   }
-
   return {
     id: nis || `student-${index}`,
     nis: nis || '0000',
