@@ -560,7 +560,7 @@ const ClassDetailView: React.FC<{
         </Card>
       )}
       <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
-        <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-3 text-xl border-b border-blue-200/50 pb-4"><div className="p-2 bg-blue-100 rounded-lg text-blue-600"><FileQuestion size={24}/></div>Bank Soal (STS & SAS)</h3>
+        <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-3 text-xl border-b border-green-200/50 pb-4"><div className="p-2 bg-blue-100 rounded-lg text-blue-600"><FileQuestion size={24}/></div>Bank Soal (STS & SAS)</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {currentSemester?.exams?.map((exam) => (
                 <a key={exam.id} href={exam.url || '#'} target="_blank" rel="noreferrer" className="flex items-center gap-4 p-4 bg-white border border-blue-100/50 rounded-xl hover:shadow-md hover:border-blue-400 transition-all group">
@@ -917,7 +917,7 @@ const AdminDashboardView: React.FC<{
 
   const adminTabs = [
     { id: 'profile', label: 'Profil Sekolah', icon: <School size={18}/> },
-    { id: 'personalization', label: 'Personalisasi Beranda', icon: <Quote size={18}/> },
+    { id: 'personalization', label: 'Personalisasi', icon: <Quote size={18}/> },
     { id: 'content', label: 'Manajemen Materi', icon: <BookOpen size={18}/> },
     { id: 'schedule', label: 'Jadwal & Nilai', icon: <CalendarRange size={18}/> },
     { id: 'students', label: 'Data Siswa', icon: <Users size={18}/> },
@@ -927,278 +927,327 @@ const AdminDashboardView: React.FC<{
   const categories: ExtraCategory[] = ['doa', 'cerita', 'sholat', 'fiqih', 'hadist', 'ramadhan', 'lainnya'];
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-       <div className="bg-white/90 backdrop-blur-xl border-b border-gray-200 px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
-          <div className="flex items-center gap-3">
-             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg"><Settings size={20} /></div>
-             <h1 className="font-bold text-gray-800 text-lg hidden sm:block">Admin Dashboard</h1>
-          </div>
-          <Button variant="danger" onClick={onLogout} className="px-4 py-2 text-sm"><LogOut size={16} /> Keluar</Button>
-       </div>
-       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex overflow-x-auto pb-4 gap-2 mb-6 hide-scrollbar border-b border-gray-200 sticky top-20 bg-gray-50/95 backdrop-blur z-40 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-             {adminTabs.map(item => (
-               <button key={item.id} onClick={() => setTab(item.id as any)} className={`flex-shrink-0 px-6 py-3 rounded-xl flex items-center gap-2 font-bold transition-all ${tab === item.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'}`}>{item.icon} {item.label}</button>
-             ))}
-          </div>
-          <div className="flex-grow min-h-[600px]">
-             {tab === 'profile' && (
-               <Card>
-                  <SectionTitle title="Edit Profil Sekolah" />
-                  <Input label="Nama Sekolah" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} />
-                  <TextArea label="Deskripsi" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} />
-                  <Input label="Alamat" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
-                  <Input label="Email" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} />
-                  <div className="grid grid-cols-2 gap-4">
-                     <Input label="Nama Guru PAI" value={profileForm.teacherName} onChange={e => setProfileForm({...profileForm, teacherName: e.target.value})} />
-                     <Input label="No. WhatsApp (Format 62...)" value={profileForm.phoneNumber} onChange={e => setProfileForm({...profileForm, phoneNumber: e.target.value})} />
-                  </div>
-                  <div className="mt-6 flex justify-end"><Button onClick={handleProfileSave}><Save size={18} /> Simpan Perubahan</Button></div>
-               </Card>
-             )}
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50/50">
+      {/* Sidebar Navigation */}
+      <aside className="w-full lg:w-72 bg-white border-b lg:border-b-0 lg:border-r border-gray-200 lg:sticky lg:top-0 lg:h-screen flex flex-col z-50 overflow-hidden">
+        <div className="p-6 flex items-center gap-3 border-b border-gray-100 lg:border-none">
+           <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-600/20"><Settings size={20} /></div>
+           <div>
+              <h1 className="font-bold text-gray-800 text-base leading-tight">Admin PAI</h1>
+              <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">Dashboard</p>
+           </div>
+        </div>
+        
+        {/* Navigation list */}
+        <div className="flex-grow p-4 space-y-1 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto flex lg:flex-col items-center lg:items-stretch scrollbar-hide">
+           {adminTabs.map(item => (
+             <button 
+                key={item.id} 
+                onClick={() => setTab(item.id as any)} 
+                className={`flex-shrink-0 lg:w-full px-4 py-3 rounded-xl flex items-center gap-3 font-semibold transition-all text-sm lg:text-[15px] whitespace-nowrap ${tab === item.id ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}
+             >
+                <span className={`${tab === item.id ? 'text-blue-600' : 'text-gray-400'}`}>{item.icon}</span>
+                {item.label}
+             </button>
+           ))}
+        </div>
 
-             {tab === 'personalization' && (
-               <Card>
-                  <SectionTitle title="Personalisasi Beranda" subtitle="Atur teks salam pembuka dan kata-kata motivasi yang muncul di halaman depan." />
-                  
-                  <div className="space-y-8">
-                    <div>
-                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MessageCircle size={20} className="text-blue-600"/> Teks Ucapan Salam Robot</h3>
-                      <TextArea 
-                        label="Pesan Pembuka (Tampil di Robot)" 
-                        value={profileForm.greetingText || ''} 
-                        onChange={e => setProfileForm({...profileForm, greetingText: e.target.value})} 
-                        placeholder="Contoh: Assalamualaikum Warahmatullahi Wabarakatuh..."
-                        className="min-h-[120px]"
-                      />
+        <div className="p-4 border-t border-gray-100 mt-auto hidden lg:block">
+           <button 
+              onClick={onLogout} 
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-semibold text-red-500 hover:bg-red-50 transition-all text-sm"
+            >
+              <LogOut size={18} /> Keluar Sesi
+           </button>
+        </div>
+        
+        {/* Mobile logout */}
+        <div className="lg:hidden p-4 border-t border-gray-100 flex justify-end">
+           <button onClick={onLogout} className="text-red-500 font-bold flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-xs"><LogOut size={14}/> Keluar</button>
+        </div>
+      </aside>
+
+      {/* Main Content Area */}
+      <main className="flex-grow p-4 sm:p-8 overflow-y-auto">
+          <div className="max-w-5xl mx-auto">
+             <header className="mb-8 lg:mt-2">
+                <h2 className="text-2xl font-bold text-gray-800">{adminTabs.find(t => t.id === tab)?.label}</h2>
+                <p className="text-gray-500 text-sm">Manajemen sistem {schoolProfile.name}</p>
+             </header>
+
+             <div className="animate-fade-in-up">
+               {tab === 'profile' && (
+                 <Card>
+                    <SectionTitle title="Profil Sekolah" />
+                    <Input label="Nama Sekolah" value={profileForm.name} onChange={e => setProfileForm({...profileForm, name: e.target.value})} />
+                    <TextArea label="Deskripsi" value={profileForm.description} onChange={e => setProfileForm({...profileForm, description: e.target.value})} />
+                    <Input label="Alamat" value={profileForm.address} onChange={e => setProfileForm({...profileForm, address: e.target.value})} />
+                    <Input label="Email" value={profileForm.email} onChange={e => setProfileForm({...profileForm, email: e.target.value})} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <Input label="Nama Guru PAI" value={profileForm.teacherName} onChange={e => setProfileForm({...profileForm, teacherName: e.target.value})} />
+                       <Input label="No. WhatsApp (Format 62...)" value={profileForm.phoneNumber} onChange={e => setProfileForm({...profileForm, phoneNumber: e.target.value})} />
                     </div>
+                    <div className="mt-6 flex justify-end"><Button onClick={handleProfileSave} className="rounded-xl"><Save size={18} /> Simpan Perubahan</Button></div>
+                 </Card>
+               )}
 
-                    <div className="border-t pt-8">
-                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Quote size={20} className="text-blue-600"/> 5 Kata Motivasi (Akan tampil bergantian)</h3>
-                      <div className="space-y-4">
-                        {[0, 1, 2, 3, 4].map((idx) => (
-                          <Input 
-                            key={idx}
-                            label={`Kata Motivasi #${idx + 1}`}
-                            value={(profileForm.quotes && profileForm.quotes[idx]) || ''}
-                            onChange={e => {
-                              const newQuotes = profileForm.quotes ? [...profileForm.quotes] : ['', '', '', '', ''];
-                              newQuotes[idx] = e.target.value;
-                              setProfileForm({...profileForm, quotes: newQuotes});
-                            }}
-                            placeholder="Tuliskan kata mutiara atau kutipan hadits..."
-                          />
-                        ))}
+               {tab === 'personalization' && (
+                 <Card>
+                    <SectionTitle title="Konten Beranda" subtitle="Atur teks salam robot dan kata motivasi yang tampil secara bergantian." />
+                    <div className="space-y-8">
+                      <div>
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><MessageCircle size={20} className="text-blue-600"/> Pesan Salam Pembuka</h3>
+                        <TextArea 
+                          label="Teks Greeting (Robot)" 
+                          value={profileForm.greetingText || ''} 
+                          onChange={e => setProfileForm({...profileForm, greetingText: e.target.value})} 
+                          placeholder="Assalamu’alaikum... Selamat datang di LMS..."
+                          className="min-h-[100px] rounded-xl"
+                        />
+                      </div>
+
+                      <div className="border-t pt-8">
+                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Quote size={20} className="text-blue-600"/> 5 Kata Motivasi Bergantian</h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          {[0, 1, 2, 3, 4].map((idx) => (
+                            <Input 
+                              key={idx}
+                              label={`Motivasi #${idx + 1}`}
+                              value={(profileForm.quotes && profileForm.quotes[idx]) || ''}
+                              onChange={e => {
+                                const newQuotes = profileForm.quotes ? [...profileForm.quotes] : ['', '', '', '', ''];
+                                newQuotes[idx] = e.target.value;
+                                setProfileForm({...profileForm, quotes: newQuotes});
+                              }}
+                              placeholder="Ketik kutipan hadits atau kata bijak..."
+                              className="rounded-xl"
+                            />
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="mt-8 pt-6 border-t flex justify-end">
-                    <Button onClick={handleProfileSave}><Save size={18} /> Simpan Pengaturan Beranda</Button>
-                  </div>
-               </Card>
-             )}
-
-             {tab === 'students' && (
-               <Card>
-                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                     <SectionTitle title="Manajemen Data Siswa" subtitle={`Total: ${students.length} Siswa Terdaftar`} />
-                     <div className="flex items-center gap-2">
-                        <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} className="hidden" id="excel-upload" />
-                        <label htmlFor="excel-upload" className="flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg cursor-pointer hover:bg-green-200 transition-colors text-sm font-bold"><Upload size={16}/> Import Excel</label>
-                        <div className="w-px h-6 bg-gray-300 mx-2"></div>
-                        <Filter size={16} className="text-gray-500"/>
-                        <select className="p-2 border rounded-lg text-sm bg-white" value={filterClass} onChange={(e) => setFilterClass(e.target.value)}>
-                           <option value="all">Semua Kelas</option>
-                           {classes.sort((a, b) => a.id.localeCompare(b.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
-                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                     <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Plus size={18}/> {editingStudentId ? 'Edit Siswa' : 'Tambah Siswa Manual'}</h3>
-                        <Input placeholder="Nama Lengkap" value={studentForm.name || ''} onChange={e => setStudentForm({...studentForm, name: e.target.value})} className="mb-2"/>
-                        <div className="flex gap-2 mb-2">
-                           <Input placeholder="NIS/NISN" value={studentForm.nis || ''} onChange={e => setStudentForm({...studentForm, nis: e.target.value})} className="flex-1 mb-0"/>
-                           <select className="p-3 rounded-xl border border-gray-300 bg-white" value={studentForm.gender || 'L'} onChange={e => setStudentForm({...studentForm, gender: e.target.value as any})}><option value="L">Laki-laki</option><option value="P">Perempuan</option></select>
-                           <select className="p-3 rounded-xl border border-gray-300 bg-white" value={studentForm.classId || '7A'} onChange={e => setStudentForm({...studentForm, classId: e.target.value})}>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-                        </div>
-                        <Button onClick={handleStudentSave} className="w-full text-sm py-2">{editingStudentId ? 'Simpan Perubahan' : 'Tambah Siswa'}</Button>
-                        {editingStudentId && <button onClick={() => {setEditingStudentId(null); setStudentForm({ classId: '7A', gender: 'L', name: '', nis: '' })}} className="text-xs text-red-500 mt-2 text-center w-full block">Batal Edit</button>}
-                     </div>
-                  </div>
-                  <div className="overflow-x-auto max-h-[500px] border rounded-xl">
-                     <table className="min-w-full text-sm text-left">
-                        <thead className="bg-gray-100 font-bold text-gray-700 sticky top-0"><tr><th className="px-4 py-3">NIS</th><th className="px-4 py-3">Nama</th><th className="px-4 py-3">Kelas</th><th className="px-4 py-3">L/P</th><th className="px-4 py-3 text-right">Aksi</th></tr></thead>
-                        <tbody className="divide-y divide-gray-100">{filteredStudents.map(s => (<tr key={s.id} className="hover:bg-gray-50"><td className="px-4 py-2">{s.nis}</td><td className="px-4 py-2 font-medium">{s.name}</td><td className="px-4 py-2">{s.classId}</td><td className="px-4 py-2">{s.gender}</td><td className="px-4 py-2 text-right flex justify-end gap-2"><button onClick={() => handleStudentEdit(s)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Edit3 size={16}/></button><button onClick={() => handleStudentDelete(s.id)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Trash2 size={16}/></button></td></tr>))}</tbody>
-                     </table>
-                  </div>
-               </Card>
-             )}
-
-             {tab === 'schedule' && (
-                <Card>
-                    <SectionTitle title="Pengaturan Jadwal & Nilai" subtitle="Kelola jadwal pelajaran dan rekap nilai per semester per kelas." />
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        <div>
-                            <h3 className="font-bold mb-4">1. Pilih Kelas</h3>
-                            <div className="mb-6">
-                                <select 
-                                  className="w-full p-4 rounded-xl border border-gray-300 bg-white font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                                  value={selClassId}
-                                  onChange={(e) => { setSelClassId(e.target.value); setResourceEdit(null); }}
-                                >
-                                  {classes.sort((a,b)=>a.id.localeCompare(b.id)).map(c => (
-                                      <option key={c.id} value={c.id}>{c.name}</option>
-                                  ))}
-                                </select>
-                            </div>
-                            
-                            {currentClass && (
-                                <div className="space-y-4">
-                                    <h3 className="font-bold">2. Pilih Data untuk {currentClass.name}</h3>
-                                    <button onClick={() => setResourceEdit({ type: 'schedule', item: currentClass.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'link', url: '' }, parentId: currentClass.id })} className={`w-full flex items-center justify-between p-4 border rounded-xl transition-colors ${resourceEdit?.type === 'schedule' ? 'bg-blue-600 text-white border-blue-600 shadow-lg' : 'bg-blue-50 border-blue-200 text-blue-900 hover:bg-blue-100'}`}>
-                                        <div className="flex items-center gap-3"><CalendarRange size={20}/><span className="font-bold">Jadwal Pelajaran</span></div>
-                                        <Edit3 size={18} className={resourceEdit?.type === 'schedule' ? 'text-white' : 'text-blue-400'}/>
-                                    </button>
-                                    <button onClick={() => {
-                                        const semGanjil = currentClass.semesters.find(s => s.id === 'ganjil');
-                                        setResourceEdit({ type: 'grades', item: semGanjil?.grades || { id: 'grd-ganjil', title: 'Rekap Nilai Ganjil', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'ganjil' });
-                                    }} className={`w-full flex items-center justify-between p-4 border rounded-xl transition-colors ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'bg-green-600 text-white border-green-600 shadow-lg' : 'bg-green-50 border-green-200 text-green-900 hover:bg-green-100'}`}>
-                                        <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Ganjil</span></div>
-                                        <Edit3 size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'text-white' : 'text-green-400'}/>
-                                    </button>
-                                    <button onClick={() => {
-                                        const semGenap = currentClass.semesters.find(s => s.id === 'genap');
-                                        setResourceEdit({ type: 'grades', item: semGenap?.grades || { id: 'grd-genap', title: 'Rekap Nilai Genap', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'genap' });
-                                    }} className={`w-full flex items-center justify-between p-4 border rounded-xl transition-colors ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg' : 'bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100'}`}>
-                                        <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Genap</span></div>
-                                        <Edit3 size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'text-white' : 'text-emerald-400'}/>
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                        <div className="bg-gray-50 p-6 rounded-xl border min-h-[400px]">
-                            {resourceEdit ? (
-                                <div className="animate-fade-in-up">
-                                    <div className="flex justify-between items-center mb-6">
-                                        <div><h3 className="font-bold text-gray-800 text-lg">{resourceEdit.item.title}</h3><p className="text-xs text-gray-500">{selClassId} - {resourceEdit.semesterId || 'Umum'}</p></div>
-                                        <Button onClick={handleResourceSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan</Button>
-                                    </div>
-                                    <div className="flex gap-4 mb-4 bg-white p-2 rounded-lg border">
-                                        <label className={`flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-md transition-colors font-medium text-sm ${resourceEdit.item.type === 'link' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}`}>
-                                            <input type="radio" name="resType" className="hidden" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/>
-                                            <LinkIcon size={14}/> Tautan URL
-                                        </label>
-                                        <label className={`flex-1 flex items-center justify-center gap-2 cursor-pointer p-2 rounded-md transition-colors font-medium text-sm ${resourceEdit.item.type === 'html' ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100 text-gray-600'}`}>
-                                            <input type="radio" name="resType" className="hidden" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/>
-                                            <Code size={14}/> Kode HTML
-                                        </label>
-                                    </div>
-                                    {resourceEdit.item.type === 'link' ? (
-                                        <Input label="Link Dokumen" placeholder="https://docs.google.com/..." value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})}/>
-                                    ) : (
-                                        <TextArea label="Input Kode HTML" placeholder="<table class='...'>...</table>" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="h-64 font-mono text-sm"/>
-                                    )}
-                                    <div className="mt-4 p-3 bg-amber-50 rounded-lg text-amber-700 text-xs border border-amber-200">Tip: Gunakan "Link" jika Anda ingin siswa membuka dokumen di tab baru, gunakan "HTML" jika ingin menampilkan tabel langsung.</div>
-                                </div>
-                            ) : <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center italic space-y-4">
-                                  <Edit3 size={48} className="opacity-20"/>
-                                  <p>Pilih kelas dan jenis data di sebelah kiri untuk mengedit.</p>
-                                </div>}
-                        </div>
+                    <div className="mt-8 pt-6 border-t flex justify-end">
+                      <Button onClick={handleProfileSave} className="rounded-xl"><Save size={18} /> Simpan Pengaturan</Button>
                     </div>
-                </Card>
-             )}
+                 </Card>
+               )}
 
-             {tab === 'content' && (
-               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="lg:col-span-1 h-fit">
-                     <h3 className="font-bold text-gray-800 mb-4">Pilih Tingkatan Kelas</h3>
-                     <div className="space-y-4">
-                        <div className="flex flex-col gap-2">
-                           {[{id: '7', label: 'Kelas VII (Terintegrasi)'},{id: '8', label: 'Kelas VIII (Terintegrasi)'},{id: '9', label: 'Kelas IX (Terintegrasi)'}].map(g => (
-                             <button key={g.id} onClick={() => setSelGrade(g.id)} className={`w-full p-4 text-left rounded-xl border-2 transition-all font-bold ${selGrade === g.id ? 'border-blue-600 bg-blue-50 text-blue-700 shadow-md' : 'border-gray-100 bg-white text-gray-500 hover:border-blue-200'}`}>{g.label}</button>
-                           ))}
-                        </div>
-                        <select className="w-full p-2 border rounded-lg bg-gray-50 mt-2" value={selSemId} onChange={e => setSelSemId(e.target.value)}><option value="ganjil">Semester Ganjil</option><option value="genap">Semester Genap</option></select>
-                        <div className="space-y-1">
-                            <div className="flex justify-between items-center px-1"><div className="p-2 text-xs font-bold text-gray-500 uppercase">Evaluasi Bersama</div><button onClick={() => setResourceEdit({ type: 'exam', item: { id: Date.now().toString(), title: 'Evaluasi Baru', type: 'link', url: '' } })} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">+ Tambah</button></div>
-                            {currentSemester?.exams?.map(exam => (<div key={exam.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded text-sm group"><span className="truncate">{exam.title}</span><div className="flex gap-1 opacity-0 group-hover:opacity-100"><button onClick={() => setResourceEdit({ type: 'exam', item: exam })}><Edit3 size={12} className="text-blue-500"/></button><button onClick={() => { if(confirm('Hapus?')) onUpdateClassResourceByGrade(selGrade, 'exam', { id: 'DUMMY', title: 'REFRESH', type: 'html' }, selSemId); }}><Trash2 size={12} className="text-red-500"/></button></div></div>))}
-                        </div>
-                        <div className="space-y-1 max-h-[250px] overflow-y-auto mt-4 pt-2 border-t">
-                           <div className="text-xs font-bold text-gray-500 uppercase mb-2">Daftar Bab (Satu Untuk Semua)</div>
-                           {currentSemester?.chapters.map(chap => (<div key={chap.id} onClick={() => { setSelChapId(chap.id); setResourceEdit(null); }} className={`p-2 rounded cursor-pointer text-sm ${selChapId === chap.id && !resourceEdit ? 'bg-blue-600 text-white font-bold' : 'hover:bg-gray-100 text-gray-700'}`}>{chap.title}</div>))}
-                        </div>
-                     </div>
-                  </Card>
-                  <Card className="lg:col-span-2">
-                     {resourceEdit && resourceEdit.type === 'exam' ? (
-                        <div>
-                            <div className="flex justify-between items-center mb-6 border-b pb-4"><h2 className="text-xl font-bold">Edit Soal Evaluasi</h2><div className="flex gap-2"><Button variant="secondary" onClick={() => setResourceEdit(null)} className="py-2 px-4 text-sm">Batal</Button><Button onClick={handleResourceSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan Ke Semua</Button></div></div>
-                            <div className="space-y-4">
-                                <Input label="Judul" value={resourceEdit.item.title} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, title: e.target.value}})} />
-                                <div className="flex gap-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/><span className="text-sm">HTML</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/><span className="text-sm">Link</span></label></div>
-                                {resourceEdit.item.type === 'html' ? <TextArea label="Konten HTML" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} /> : <Input label="URL Link" value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} />}
-                            </div>
-                        </div>
-                     ) : chapForm ? (
-                        <div className="relative"><div className="absolute -top-1 right-0 bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">Mode Sinkronisasi Aktif</div><AdminContentEditor chapter={chapForm} onSave={handleChapterUpdate} /></div>
-                     ) : <div className="flex flex-col items-center justify-center h-[400px] text-gray-400"><BookOpen size={48} className="mb-4 opacity-20"/><p>Silakan pilih tingkat kelas dan bab untuk memulai pengeditan materi.</p></div>}
-                  </Card>
-               </div>
-             )}
-
-             {tab === 'extras' && (
-               <Card>
-                 <SectionTitle title="Pojok Literasi" subtitle="Kelola konten tambahan (Doa, Cerita, Ramadhan, dll)" />
-                 <div className="bg-gray-50 p-6 rounded-xl border border-gray-200 mb-8">
-                    <h3 className="font-bold text-gray-800 mb-4">{editingExtraId ? 'Edit Konten' : 'Tambah Konten Baru'}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                       <Input label="Judul" value={extraForm.title || ''} onChange={e => setExtraForm({...extraForm, title: e.target.value})} className="mb-0"/>
-                       <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori</label><select className="w-full p-3 rounded-xl border border-gray-300 bg-white" value={extraForm.category} onChange={e => setExtraForm({...extraForm, category: e.target.value as ExtraCategory})}>
-                          {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
-                       </select></div>
+               {tab === 'students' && (
+                 <Card>
+                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                       <SectionTitle title="Database Siswa" subtitle={`Total: ${students.length} Siswa`} />
+                       <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <input type="file" accept=".xlsx, .xls" ref={fileInputRef} onChange={handleFileUpload} className="hidden" id="excel-upload" />
+                          <label htmlFor="excel-upload" className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl cursor-pointer hover:bg-green-100 transition-colors text-sm font-bold border border-green-200"><Upload size={16}/> Import Excel</label>
+                          <div className="w-px h-6 bg-gray-200 mx-1 hidden sm:block"></div>
+                          <select className="flex-1 sm:flex-none p-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-blue-500" value={filterClass} onChange={(e) => setFilterClass(e.target.value)}>
+                             <option value="all">Semua Kelas</option>
+                             {classes.sort((a, b) => a.id.localeCompare(b.id)).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </select>
+                       </div>
                     </div>
-                    <div className="flex gap-4 mb-4"><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={extraForm.type === 'link'} onChange={() => setExtraForm({...extraForm, type: 'link'})}/><span className="text-sm">Link</span></label><label className="flex items-center gap-2 cursor-pointer"><input type="radio" checked={extraForm.type === 'html'} onChange={() => setExtraForm({...extraForm, type: 'html'})}/><span className="text-sm">HTML</span></label></div>
-                    {extraForm.type === 'link' ? <Input placeholder="Link URL" value={extraForm.url || ''} onChange={e => setExtraForm({...extraForm, url: e.target.value})} /> : <TextArea placeholder="Isi HTML" value={extraForm.content || ''} onChange={e => setExtraForm({...extraForm, content: e.target.value})} />}
-                    <div className="flex gap-2"><Button onClick={handleExtraSave}>{editingExtraId ? 'Simpan' : 'Tambah'}</Button></div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                       <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                          <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider"><Plus size={16}/> {editingStudentId ? 'Edit Data Siswa' : 'Tambah Siswa Baru'}</h3>
+                          <Input placeholder="Nama Lengkap Siswa" value={studentForm.name || ''} onChange={e => setStudentForm({...studentForm, name: e.target.value})} className="mb-2 rounded-xl bg-white"/>
+                          <div className="flex flex-wrap sm:flex-nowrap gap-2 mb-2">
+                             <Input placeholder="NIS" value={studentForm.nis || ''} onChange={e => setStudentForm({...studentForm, nis: e.target.value})} className="flex-1 mb-0 rounded-xl bg-white"/>
+                             <select className="p-3 rounded-xl border border-gray-200 bg-white text-sm" value={studentForm.gender || 'L'} onChange={e => setStudentForm({...studentForm, gender: e.target.value as any})}><option value="L">Laki-laki</option><option value="P">Perempuan</option></select>
+                             <select className="p-3 rounded-xl border border-gray-200 bg-white text-sm" value={studentForm.classId || '7A'} onChange={e => setStudentForm({...studentForm, classId: e.target.value})}>{classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
+                          </div>
+                          <Button onClick={handleStudentSave} className="w-full text-sm py-3 rounded-xl shadow-none">{editingStudentId ? 'Simpan Perubahan' : 'Tambahkan ke Daftar'}</Button>
+                          {editingStudentId && <button onClick={() => {setEditingStudentId(null); setStudentForm({ classId: '7A', gender: 'L', name: '', nis: '' })}} className="text-xs text-red-500 mt-2 text-center w-full block font-medium">Batalkan Pengeditan</button>}
+                       </div>
+                    </div>
+                    <div className="overflow-x-auto rounded-2xl border border-gray-100 bg-white">
+                       <table className="min-w-full text-sm text-left">
+                          <thead className="bg-gray-50 font-bold text-gray-600 border-b border-gray-100"><tr><th className="px-6 py-4">NIS</th><th className="px-6 py-4">Nama</th><th className="px-6 py-4">Kelas</th><th className="px-6 py-4">JK</th><th className="px-6 py-4 text-right">Aksi</th></tr></thead>
+                          <tbody className="divide-y divide-gray-50">{filteredStudents.map(s => (<tr key={s.id} className="hover:bg-gray-50/50 transition-colors"><td className="px-6 py-3 font-mono text-xs">{s.nis}</td><td className="px-6 py-3 font-semibold text-gray-700">{s.name}</td><td className="px-6 py-3">{s.classId}</td><td className="px-6 py-3">{s.gender}</td><td className="px-6 py-3 text-right flex justify-end gap-2"><button onClick={() => handleStudentEdit(s)} className="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition-colors"><Edit3 size={16}/></button><button onClick={() => handleStudentDelete(s.id)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"><Trash2 size={16}/></button></td></tr>))}</tbody>
+                       </table>
+                    </div>
+                 </Card>
+               )}
+
+               {tab === 'schedule' && (
+                  <Card>
+                      <SectionTitle title="Jadwal & Rekap Nilai" subtitle="Kelola tautan jadwal pelajaran dan rekapitulasi nilai per semester." />
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          <div>
+                              <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Filter size={18} className="text-blue-500"/> 1. Pilih Kelas Utama</h3>
+                              <div className="mb-6">
+                                  <select 
+                                    className="w-full p-4 rounded-2xl border border-gray-200 bg-white font-bold text-gray-700 shadow-sm focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer"
+                                    value={selClassId}
+                                    onChange={(e) => { setSelClassId(e.target.value); setResourceEdit(null); }}
+                                  >
+                                    {classes.sort((a,b)=>a.id.localeCompare(b.id)).map(c => (
+                                        <option key={c.id} value={c.id}>{c.name}</option>
+                                    ))}
+                                  </select>
+                              </div>
+                              
+                              {currentClass && (
+                                  <div className="space-y-3">
+                                      <h3 className="font-bold text-gray-800 mb-4">2. Pilih Data yang Ingin Diatur</h3>
+                                      <button onClick={() => setResourceEdit({ type: 'schedule', item: currentClass.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'link', url: '' }, parentId: currentClass.id })} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'schedule' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 hover:border-blue-200 text-gray-700'}`}>
+                                          <div className="flex items-center gap-3"><CalendarRange size={20}/><span className="font-bold">Jadwal Pelajaran</span></div>
+                                          <ChevronRight size={18} className={resourceEdit?.type === 'schedule' ? 'text-white' : 'text-gray-300'}/>
+                                      </button>
+                                      <button onClick={() => {
+                                          const semGanjil = currentClass.semesters.find(s => s.id === 'ganjil');
+                                          setResourceEdit({ type: 'grades', item: semGanjil?.grades || { id: 'grd-ganjil', title: 'Rekap Nilai Ganjil', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'ganjil' });
+                                      }} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'bg-white border border-gray-100 hover:border-green-200 text-gray-700'}`}>
+                                          <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Ganjil</span></div>
+                                          <ChevronRight size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'text-white' : 'text-gray-300'}/>
+                                      </button>
+                                      <button onClick={() => {
+                                          const semGenap = currentClass.semesters.find(s => s.id === 'genap');
+                                          setResourceEdit({ type: 'grades', item: semGenap?.grades || { id: 'grd-genap', title: 'Rekap Nilai Genap', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'genap' });
+                                      }} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white border border-gray-100 hover:border-emerald-200 text-gray-700'}`}>
+                                          <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Genap</span></div>
+                                          <ChevronRight size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'text-white' : 'text-gray-300'}/>
+                                      </button>
+                                  </div>
+                              )}
+                          </div>
+                          <div className="bg-gray-100/50 p-6 rounded-3xl border border-gray-100 min-h-[400px]">
+                              {resourceEdit ? (
+                                  <div className="animate-fade-in-up">
+                                      <div className="flex justify-between items-center mb-6">
+                                          <div><h3 className="font-bold text-gray-800 text-lg">{resourceEdit.item.title}</h3><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{selClassId} • {resourceEdit.semesterId || 'UMUM'}</p></div>
+                                          <Button onClick={handleResourceSave} className="py-2 px-6 rounded-xl shadow-none text-sm"><Save size={16}/> Simpan</Button>
+                                      </div>
+                                      <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-xl border border-gray-200">
+                                          <button onClick={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${resourceEdit.item.type === 'link' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                                              <LinkIcon size={14}/> Tautan URL
+                                          </button>
+                                          <button onClick={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg font-bold text-xs transition-all ${resourceEdit.item.type === 'html' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}>
+                                              <Code size={14}/> Kode HTML
+                                          </button>
+                                      </div>
+                                      {resourceEdit.item.type === 'link' ? (
+                                          <Input label="Link Dokumen / Spreadsheet" placeholder="https://docs.google.com/..." value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} className="rounded-xl bg-white shadow-sm border-gray-100"/>
+                                      ) : (
+                                          <TextArea label="Input Tabel / Embed HTML" placeholder="<table class='...'>...</table>" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="h-64 font-mono text-xs rounded-xl bg-white shadow-sm border-gray-100"/>
+                                      )}
+                                      <div className="mt-4 p-4 bg-amber-50 rounded-2xl text-amber-700 text-[11px] leading-relaxed border border-amber-100 flex gap-3">
+                                         <Sparkles size={16} className="flex-shrink-0"/>
+                                         <span>Gunakan <b>Tautan URL</b> untuk dokumen eksternal, gunakan <b>HTML</b> jika ingin menampilkan konten langsung di halaman siswa.</span>
+                                      </div>
+                                  </div>
+                              ) : <div className="h-full flex flex-col items-center justify-center text-gray-400 text-center italic space-y-4">
+                                    <div className="p-5 bg-white rounded-full shadow-sm"><Edit3 size={40} className="opacity-10"/></div>
+                                    <p className="text-sm font-medium">Pilih data di sebelah kiri<br/>untuk memulai pengaturan.</p>
+                                  </div>}
+                          </div>
+                      </div>
+                  </Card>
+               )}
+
+               {tab === 'content' && (
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-1 h-fit">
+                       <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><GraduationCap size={18} className="text-blue-500"/> Tingkatan Materi</h3>
+                       <div className="space-y-4">
+                          <div className="flex flex-col gap-2">
+                             {[{id: '7', label: 'Kelas VII'},{id: '8', label: 'Kelas VIII'},{id: '9', label: 'Kelas IX'}].map(g => (
+                               <button key={g.id} onClick={() => setSelGrade(g.id)} className={`w-full p-4 text-left rounded-2xl border-2 transition-all font-bold ${selGrade === g.id ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-50 bg-white text-gray-400 hover:border-gray-200'}`}>{g.label}</button>
+                             ))}
+                          </div>
+                          <select className="w-full p-3 border border-gray-200 rounded-2xl bg-white text-sm font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-500" value={selSemId} onChange={e => setSelSemId(e.target.value)}><option value="ganjil">Semester Ganjil</option><option value="genap">Semester Genap</option></select>
+                          
+                          <div className="pt-4 border-t border-gray-100">
+                              <div className="flex justify-between items-center px-1 mb-2"><div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Bank Soal Terintegrasi</div><button onClick={() => setResourceEdit({ type: 'exam', item: { id: Date.now().toString(), title: 'Soal Baru', type: 'link', url: '' } })} className="text-[10px] bg-blue-600 text-white px-2 py-1 rounded-lg font-bold shadow-sm">+ Tambah</button></div>
+                              <div className="space-y-1">
+                                {currentSemester?.exams?.map(exam => (<div key={exam.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded-xl text-sm group transition-colors"><span className="truncate text-gray-600 font-medium">{exam.title}</span><div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => setResourceEdit({ type: 'exam', item: exam })} className="p-1.5 text-blue-500 hover:bg-blue-100 rounded-lg"><Edit3 size={12}/></button><button onClick={() => { if(confirm('Hapus soal ini?')) onUpdateClassResourceByGrade(selGrade, 'exam', { id: 'DUMMY', title: 'REFRESH', type: 'html' }, selSemId); }} className="p-1.5 text-red-500 hover:bg-red-100 rounded-lg"><Trash2 size={12}/></button></div></div>))}
+                              </div>
+                          </div>
+
+                          <div className="pt-4 border-t border-gray-100 max-h-[300px] overflow-y-auto pr-1">
+                             <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Daftar Materi Bab</div>
+                             <div className="space-y-1">
+                                {currentSemester?.chapters.map(chap => (<div key={chap.id} onClick={() => { setSelChapId(chap.id); setResourceEdit(null); }} className={`p-3 rounded-xl cursor-pointer text-sm transition-all ${selChapId === chap.id && !resourceEdit ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-600/20' : 'hover:bg-gray-100 text-gray-600 font-medium'}`}>{chap.title}</div>))}
+                             </div>
+                          </div>
+                       </div>
+                    </Card>
+                    <Card className="lg:col-span-2">
+                       {resourceEdit && resourceEdit.type === 'exam' ? (
+                          <div className="animate-fade-in-up">
+                              <div className="flex justify-between items-center mb-6 border-b border-gray-100 pb-4"><h2 className="text-xl font-bold">Edit Soal Evaluasi</h2><div className="flex gap-2"><Button variant="secondary" onClick={() => setResourceEdit(null)} className="py-2 px-4 text-xs rounded-xl">Batal</Button><Button onClick={handleResourceSave} className="py-2 px-4 text-xs rounded-xl"><Save size={14}/> Simpan Ke Semua Kelas</Button></div></div>
+                              <div className="space-y-4">
+                                  <Input label="Judul Soal" value={resourceEdit.item.title} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, title: e.target.value}})} className="rounded-xl"/>
+                                  <div className="flex gap-4"><label className="flex items-center gap-2 cursor-pointer font-bold text-xs"><input type="radio" checked={resourceEdit.item.type === 'html'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'html'}})}/>HTML</label><label className="flex items-center gap-2 cursor-pointer font-bold text-xs"><input type="radio" checked={resourceEdit.item.type === 'link'} onChange={() => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, type: 'link'}})}/>URL Link</label></div>
+                                  {resourceEdit.item.type === 'html' ? <TextArea label="Konten HTML / Embed" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="rounded-xl font-mono text-xs"/> : <Input label="URL Google Form / Quizizz" value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} className="rounded-xl"/>}
+                              </div>
+                          </div>
+                       ) : chapForm ? (
+                          <div className="relative animate-fade-in-up">
+                             <div className="absolute -top-1 right-0 bg-blue-600 text-white text-[9px] font-extrabold px-2 py-1 rounded-full shadow-lg">SYNC MODE</div>
+                             <AdminContentEditor chapter={chapForm} onSave={handleChapterUpdate} />
+                          </div>
+                       ) : <div className="flex flex-col items-center justify-center h-[400px] text-gray-300 space-y-4"><div className="p-6 bg-gray-50 rounded-full"><BookOpen size={48} className="opacity-10"/></div><p className="text-sm font-medium">Pilih bab materi untuk mulai mengedit konten.</p></div>}
+                    </Card>
                  </div>
-                 
-                 <div className="space-y-8">
-                    {categories.map(cat => {
-                      const items = extras.filter(e => e.category === cat);
-                      if (items.length === 0) return null;
-                      return (
-                        <div key={cat}>
-                           <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest mb-3 border-b pb-2 flex items-center gap-2">
-                              {cat === 'doa' && <BookHeart size={14} />}
-                              {cat === 'sholat' && <Sun size={14} />}
-                              {cat === 'cerita' && <Sparkles size={14} />}
-                              {cat} ({items.length})
-                           </h3>
-                           <div className="space-y-2">
-                              {items.map(item => (
-                                <div key={item.id} className="flex items-center justify-between p-3 bg-white border border-gray-100 rounded-lg hover:shadow-sm">
-                                   <div className="flex items-center gap-3">
-                                      <span className={`w-2 h-2 rounded-full ${cat === 'doa' ? 'bg-green-400' : 'bg-blue-400'}`}></span>
-                                      <span className="font-medium text-gray-800">{item.title}</span>
-                                   </div>
-                                   <div className="flex gap-2">
-                                      <button onClick={() => handleExtraEdit(item)} className="text-blue-500 p-1 hover:bg-blue-50 rounded"><Edit3 size={16}/></button>
-                                      <button onClick={() => handleExtraDelete(item.id)} className="text-red-500 p-1 hover:bg-red-50 rounded"><Trash2 size={16}/></button>
-                                   </div>
-                                </div>
-                              ))}
-                           </div>
-                        </div>
-                      );
-                    })}
-                 </div>
-               </Card>
-             )}
+               )}
+
+               {tab === 'extras' && (
+                 <Card>
+                   <SectionTitle title="Pojok Literasi Digital" subtitle="Kelola konten tambahan seperti kumpulan doa, kisah islami, dan materi ibadah." />
+                   <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 mb-10">
+                      <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">{editingExtraId ? 'Edit Konten Literasi' : 'Tambah Konten Literasi Baru'}</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                         <Input label="Judul Konten" value={extraForm.title || ''} onChange={e => setExtraForm({...extraForm, title: e.target.value})} className="mb-0 rounded-xl bg-white"/>
+                         <div><label className="block text-sm font-medium text-gray-700 mb-1.5">Kategori Literasi</label><select className="w-full p-3 rounded-xl border border-gray-200 bg-white text-sm outline-none focus:ring-2 focus:ring-blue-500 font-medium" value={extraForm.category} onChange={e => setExtraForm({...extraForm, category: e.target.value as ExtraCategory})}>
+                            {categories.map(cat => <option key={cat} value={cat}>{cat.toUpperCase()}</option>)}
+                         </select></div>
+                      </div>
+                      <div className="flex gap-4 mb-4"><label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-600"><input type="radio" checked={extraForm.type === 'link'} onChange={() => setExtraForm({...extraForm, type: 'link'})}/>Tautan Luar</label><label className="flex items-center gap-2 cursor-pointer font-bold text-xs text-gray-600"><input type="radio" checked={extraForm.type === 'html'} onChange={() => setExtraForm({...extraForm, type: 'html'})}/>Isi HTML</label></div>
+                      {extraForm.type === 'link' ? <Input placeholder="Contoh: https://www.youtube.com/..." value={extraForm.url || ''} onChange={e => setExtraForm({...extraForm, url: e.target.value})} className="rounded-xl bg-white shadow-sm border-gray-100"/> : <TextArea placeholder="Tuliskan teks atau masukkan kode HTML..." value={extraForm.content || ''} onChange={e => setExtraForm({...extraForm, content: e.target.value})} className="rounded-xl bg-white shadow-sm border-gray-100 font-mono text-xs"/>}
+                      <div className="flex gap-2 mt-2"><Button onClick={handleExtraSave} className="px-8 rounded-xl shadow-none">{editingExtraId ? 'Simpan Konten' : 'Tambahkan Konten'}</Button></div>
+                   </div>
+                   
+                   <div className="space-y-8">
+                      {categories.map(cat => {
+                        const items = extras.filter(e => e.category === cat);
+                        if (items.length === 0) return null;
+                        return (
+                          <div key={cat} className="animate-fade-in-up">
+                             <h3 className="font-extrabold text-gray-400 text-[10px] uppercase tracking-[0.2em] mb-4 border-b border-gray-100 pb-3 flex items-center gap-3">
+                                <span className={`p-1.5 rounded-lg bg-gray-100 text-gray-600`}>
+                                  {cat === 'doa' && <BookHeart size={12} />}
+                                  {cat === 'sholat' && <Sun size={12} />}
+                                  {cat === 'cerita' && <Sparkles size={12} />}
+                                  {cat === 'hadist' && <MessageCircle size={12} />}
+                                  {cat === 'fiqih' && <Hand size={12} />}
+                                  {cat === 'ramadhan' && <Coffee size={12} />}
+                                  {cat === 'lainnya' && <MoreHorizontal size={12} />}
+                                </span>
+                                {cat} <span className="text-gray-300 font-normal">({items.length} konten)</span>
+                             </h3>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {items.map(item => (
+                                  <div key={item.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition-all group">
+                                     <div className="flex items-center gap-3">
+                                        <div className={`w-2 h-2 rounded-full ${item.type === 'link' ? 'bg-blue-400' : 'bg-green-400'}`}></div>
+                                        <span className="font-semibold text-gray-700 text-sm group-hover:text-blue-600 transition-colors">{item.title}</span>
+                                     </div>
+                                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleExtraEdit(item)} className="text-blue-500 p-2 hover:bg-blue-50 rounded-xl transition-colors"><Edit3 size={14}/></button>
+                                        <button onClick={() => handleExtraDelete(item.id)} className="text-red-500 p-2 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={14}/></button>
+                                     </div>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+                        );
+                      })}
+                   </div>
+                 </Card>
+               )}
+             </div>
           </div>
-       </div>
+      </main>
     </div>
   );
 };
