@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc, enableIndexedDbPersistence } from 'firebase/firestore';
 
 // ==========================================
 // TAHAP 2: TEMPEL KODE CONFIG DI BAWAH INI
@@ -30,7 +30,21 @@ try {
   if (firebaseConfig.apiKey !== "ISI_API_KEY_DARI_FIREBASE") {
       app = initializeApp(firebaseConfig);
       db = getFirestore(app);
-      console.log("Firebase initialized successfully");
+      
+      // Enable Offline Persistence
+      enableIndexedDbPersistence(db).catch((err) => {
+          if (err.code == 'failed-precondition') {
+              // Multiple tabs open, persistence can only be enabled
+              // in one tab at a a time.
+              console.warn("Firebase persistence failed: Multiple tabs open");
+          } else if (err.code == 'unimplemented') {
+              // The current browser does not support all of the
+              // features required to enable persistence
+              console.warn("Firebase persistence failed: Browser not supported");
+          }
+      });
+
+      console.log("Firebase initialized successfully with persistence");
   } else {
       console.warn("Firebase Config belum diisi. Menggunakan Data Lokal (Offline Mode).");
       db = null;

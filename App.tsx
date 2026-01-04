@@ -884,8 +884,9 @@ const AdminDashboardView: React.FC<{
   onDeleteStudent: (id: string) => void;
   onSaveExtra: (extra: ExtraContent) => void;
   onDeleteExtra: (id: string) => void;
+  onDeleteClassResource: (grade: string, type: 'exam', itemId: string, semId: string) => void;
   onLogout: () => void;
-}> = ({ classes, schoolProfile, students, extras, onUpdateChapterByGrade, onUpdateClassResourceByGrade, onUpdateClass, onUpdateProfile, onSaveStudent, onDeleteStudent, onSaveExtra, onDeleteExtra, onLogout }) => {
+}> = ({ classes, schoolProfile, students, extras, onUpdateChapterByGrade, onUpdateClassResourceByGrade, onUpdateClass, onUpdateProfile, onSaveStudent, onDeleteStudent, onSaveExtra, onDeleteExtra, onDeleteClassResource, onLogout }) => {
   const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras' | 'schedule' | 'personalization'>('profile');
   const [profileForm, setProfileForm] = useState(schoolProfile);
   const handleProfileSave = () => { onUpdateProfile(profileForm); alert('Konfigurasi diperbarui!'); };
@@ -991,7 +992,7 @@ const AdminDashboardView: React.FC<{
             onUpdateClass(updated);
         }
     } else if (type === 'exam') {
-        onUpdateClassResourceByGrade(selGrade, 'exam', item, selSemId);
+        onUpdateClassResourceByGrade(selGrade, 'exam', item, semesterId);
     }
     setResourceEdit(null);
     alert('Tersimpan!');
@@ -1000,12 +1001,16 @@ const AdminDashboardView: React.FC<{
   const currentClass = classes.find(c => c.id === selClassId);
   const templateClass = classes.find(c => c.gradeLevel === selGrade);
   const currentSemester = templateClass?.semesters.find(s => s.id === selSemId);
+  
+  // Helpers for Bank Soal UI
+  const semGanjil = templateClass?.semesters.find(s => s.id === 'ganjil');
+  const semGenap = templateClass?.semesters.find(s => s.id === 'genap');
 
   const adminTabs = [
     { id: 'profile', label: 'Profil Sekolah', icon: <School size={18}/> },
     { id: 'personalization', label: 'Personalisasi', icon: <Quote size={18}/> },
     { id: 'content', label: 'Manajemen Materi', icon: <BookOpen size={18}/> },
-    { id: 'schedule', label: 'Jadwal & Nilai', icon: <CalendarRange size={18}/> },
+    { id: 'schedule', label: 'Jadwal, Nilai & Soal', icon: <CalendarRange size={18}/> },
     { id: 'students', label: 'Data Siswa', icon: <Users size={18}/> },
     { id: 'extras', label: 'Pojok Literasi', icon: <Sparkles size={18}/> },
   ];
@@ -1156,7 +1161,7 @@ const AdminDashboardView: React.FC<{
 
                {tab === 'schedule' && (
                   <Card>
-                      <SectionTitle title="Jadwal & Rekap Nilai" subtitle="Kelola tautan jadwal pelajaran dan rekapitulasi nilai per semester." />
+                      <SectionTitle title="Jadwal, Nilai & Soal" subtitle="Kelola jadwal pelajaran, rekap nilai, dan bank soal per semester." />
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                           <div>
                               <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><Filter size={18} className="text-blue-500"/> 1. Pilih Kelas Utama</h3>
@@ -1173,26 +1178,79 @@ const AdminDashboardView: React.FC<{
                               </div>
                               
                               {currentClass && (
-                                  <div className="space-y-3">
-                                      <h3 className="font-bold text-gray-800 mb-4">2. Pilih Data yang Ingin Diatur</h3>
-                                      <button onClick={() => setResourceEdit({ type: 'schedule', item: currentClass.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'link', url: '' }, parentId: currentClass.id })} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'schedule' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 hover:border-blue-200 text-gray-700'}`}>
-                                          <div className="flex items-center gap-3"><CalendarRange size={20}/><span className="font-bold">Jadwal Pelajaran</span></div>
-                                          <ChevronRight size={18} className={resourceEdit?.type === 'schedule' ? 'text-white' : 'text-gray-300'}/>
-                                      </button>
-                                      <button onClick={() => {
-                                          const semGanjil = currentClass.semesters.find(s => s.id === 'ganjil');
-                                          setResourceEdit({ type: 'grades', item: semGanjil?.grades || { id: 'grd-ganjil', title: 'Rekap Nilai Ganjil', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'ganjil' });
-                                      }} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'bg-white border border-gray-100 hover:border-green-200 text-gray-700'}`}>
-                                          <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Ganjil</span></div>
-                                          <ChevronRight size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'text-white' : 'text-gray-300'}/>
-                                      </button>
-                                      <button onClick={() => {
-                                          const semGenap = currentClass.semesters.find(s => s.id === 'genap');
-                                          setResourceEdit({ type: 'grades', item: semGenap?.grades || { id: 'grd-genap', title: 'Rekap Nilai Genap', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'genap' });
-                                      }} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white border border-gray-100 hover:border-emerald-200 text-gray-700'}`}>
-                                          <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Genap</span></div>
-                                          <ChevronRight size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'text-white' : 'text-gray-300'}/>
-                                      </button>
+                                  <div className="space-y-6">
+                                      <div>
+                                        <h3 className="font-bold text-gray-800 mb-3">2. Jadwal & Nilai</h3>
+                                        <div className="space-y-3">
+                                            <button onClick={() => setResourceEdit({ type: 'schedule', item: currentClass.schedule || { id: 'sch', title: 'Jadwal Pelajaran', type: 'link', url: '' }, parentId: currentClass.id })} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'schedule' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'bg-white border border-gray-100 hover:border-blue-200 text-gray-700'}`}>
+                                                <div className="flex items-center gap-3"><CalendarRange size={20}/><span className="font-bold">Jadwal Pelajaran</span></div>
+                                                <ChevronRight size={18} className={resourceEdit?.type === 'schedule' ? 'text-white' : 'text-gray-300'}/>
+                                            </button>
+                                            <button onClick={() => {
+                                                const semGanjil = currentClass.semesters.find(s => s.id === 'ganjil');
+                                                setResourceEdit({ type: 'grades', item: semGanjil?.grades || { id: 'grd-ganjil', title: 'Rekap Nilai Ganjil', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'ganjil' });
+                                            }} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'bg-green-600 text-white shadow-lg shadow-green-600/20' : 'bg-white border border-gray-100 hover:border-green-200 text-gray-700'}`}>
+                                                <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Ganjil</span></div>
+                                                <ChevronRight size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'ganjil' ? 'text-white' : 'text-gray-300'}/>
+                                            </button>
+                                            <button onClick={() => {
+                                                const semGenap = currentClass.semesters.find(s => s.id === 'genap');
+                                                setResourceEdit({ type: 'grades', item: semGenap?.grades || { id: 'grd-genap', title: 'Rekap Nilai Genap', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'genap' });
+                                            }} className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all ${resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'bg-white border border-gray-100 hover:border-emerald-200 text-gray-700'}`}>
+                                                <div className="flex items-center gap-3"><GraduationCap size={20}/><span className="font-bold">Nilai Semester Genap</span></div>
+                                                <ChevronRight size={18} className={resourceEdit?.type === 'grades' && resourceEdit.semesterId === 'genap' ? 'text-white' : 'text-gray-300'}/>
+                                            </button>
+                                        </div>
+                                      </div>
+
+                                      <div className="border-t pt-4">
+                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2"><FileQuestion size={18} className="text-blue-500"/> Bank Soal (STS & SAS)</h3>
+                                        <div className="space-y-4">
+                                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="font-bold text-gray-700 text-sm">Semester Ganjil</span>
+                                                    <button onClick={() => setResourceEdit({ type: 'exam', item: { id: `exam-${Date.now()}`, title: 'Soal Baru', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'ganjil' })} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200 font-bold border border-blue-200 shadow-sm">+ Tambah</button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {semGanjil?.exams?.map(ex => (
+                                                        <div key={ex.id} className={`flex justify-between items-center bg-white p-3 rounded-lg border transition-all ${resourceEdit?.item.id === ex.id ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-blue-300'}`}>
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${ex.type === 'link' ? 'bg-orange-400' : 'bg-purple-400'}`}></div>
+                                                                <span className="text-sm font-medium text-gray-700 truncate">{ex.title}</span>
+                                                            </div>
+                                                            <div className="flex gap-1 flex-shrink-0">
+                                                                <button onClick={() => setResourceEdit({ type: 'exam', item: ex, parentId: currentClass.id, semesterId: 'ganjil' })} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-md transition-colors"><Edit3 size={14}/></button>
+                                                                <button onClick={() => onDeleteClassResource(selGrade, 'exam', ex.id, 'ganjil')} className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14}/></button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {(!semGanjil?.exams || semGanjil.exams.length === 0) && <p className="text-xs text-gray-400 italic text-center py-2">Belum ada soal.</p>}
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="font-bold text-gray-700 text-sm">Semester Genap</span>
+                                                    <button onClick={() => setResourceEdit({ type: 'exam', item: { id: `exam-${Date.now()}`, title: 'Soal Baru', type: 'link', url: '' }, parentId: currentClass.id, semesterId: 'genap' })} className="text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded hover:bg-emerald-200 font-bold border border-emerald-200 shadow-sm">+ Tambah</button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {semGenap?.exams?.map(ex => (
+                                                        <div key={ex.id} className={`flex justify-between items-center bg-white p-3 rounded-lg border transition-all ${resourceEdit?.item.id === ex.id ? 'border-emerald-500 ring-2 ring-emerald-100' : 'border-gray-200 hover:border-emerald-300'}`}>
+                                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${ex.type === 'link' ? 'bg-orange-400' : 'bg-purple-400'}`}></div>
+                                                                <span className="text-sm font-medium text-gray-700 truncate">{ex.title}</span>
+                                                            </div>
+                                                            <div className="flex gap-1 flex-shrink-0">
+                                                                <button onClick={() => setResourceEdit({ type: 'exam', item: ex, parentId: currentClass.id, semesterId: 'genap' })} className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-md transition-colors"><Edit3 size={14}/></button>
+                                                                <button onClick={() => onDeleteClassResource(selGrade, 'exam', ex.id, 'genap')} className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14}/></button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    {(!semGenap?.exams || semGenap.exams.length === 0) && <p className="text-xs text-gray-400 italic text-center py-2">Belum ada soal.</p>}
+                                                </div>
+                                            </div>
+                                        </div>
+                                      </div>
                                   </div>
                               )}
                           </div>
@@ -1200,7 +1258,13 @@ const AdminDashboardView: React.FC<{
                               {resourceEdit ? (
                                   <div className="animate-fade-in-up">
                                       <div className="flex justify-between items-center mb-6">
-                                          <div><h3 className="font-bold text-gray-800 text-lg">{resourceEdit.item.title}</h3><p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{selClassId} • {resourceEdit.semesterId || 'UMUM'}</p></div>
+                                          <div>
+                                              <h3 className="font-bold text-gray-800 text-lg">{resourceEdit.item.title}</h3>
+                                              <div className="flex gap-2 mt-1">
+                                                  <Badge color="blue">{resourceEdit.type.toUpperCase()}</Badge>
+                                                  {resourceEdit.semesterId && <Badge color={resourceEdit.semesterId === 'ganjil' ? 'blue' : 'emerald'}>{resourceEdit.semesterId.toUpperCase()}</Badge>}
+                                              </div>
+                                          </div>
                                           <Button onClick={handleResourceSave} className="py-2 px-6 rounded-xl shadow-none text-sm"><Save size={16}/> Simpan</Button>
                                       </div>
                                       <div className="flex gap-2 mb-6 bg-white p-1.5 rounded-xl border border-gray-200">
@@ -1344,7 +1408,6 @@ const App: React.FC = () => {
            const cSnap = await getDocs(collection(db, 'classes'));
            if (!cSnap.empty) {
              const loadedClasses = cSnap.docs.map(d => d.data() as ClassData);
-             // Sort classes naturally if needed, here assuming ID is fine
              setClasses(loadedClasses.sort((a,b) => a.id.localeCompare(b.id)));
            }
 
@@ -1409,7 +1472,6 @@ const App: React.FC = () => {
   // Complex Updates (Batch)
 
   const handleUpdateChapter = async (grade: string, semId: string, chapId: string, data: Partial<Chapter>) => {
-    // 1. Calculate new state
     const newClasses = classes.map(c => {
       if (c.gradeLevel === grade) {
         return {
@@ -1430,7 +1492,6 @@ const App: React.FC = () => {
 
     setClasses(newClasses);
 
-    // 2. Persist to Firebase (Batch update for all classes in this grade)
     if (db) {
       const batch = writeBatch(db);
       const classesToUpdate = newClasses.filter(c => c.gradeLevel === grade);
@@ -1443,34 +1504,65 @@ const App: React.FC = () => {
   };
 
   const handleUpdateResource = async (grade: string, type: 'exam' | 'grades' | 'schedule', item: ResourceItem, semId?: string) => {
-      // 1. Calculate new state
       const newClasses = classes.map(c => {
           if (c.gradeLevel === grade) {
-              if (type === 'exam' && semId) {
+              if (type === 'schedule') return { ...c, schedule: item };
+              if (type === 'grades' || type === 'exam') {
                   return {
                       ...c,
                       semesters: c.semesters.map(s => {
                           if (s.id === semId) {
-                              const exams = s.exams ? [...s.exams] : [];
-                              const idx = exams.findIndex(e => e.id === item.id);
-                              if (idx > -1) exams[idx] = item;
-                              else exams.push(item);
-                              return { ...s, exams };
+                              if (type === 'grades') return { ...s, grades: item };
+                              if (type === 'exam') {
+                                  const exams = s.exams ? [...s.exams] : [];
+                                  const idx = exams.findIndex(e => e.id === item.id);
+                                  if (idx > -1) exams[idx] = item;
+                                  else exams.push(item);
+                                  return { ...s, exams };
+                              }
                           }
                           return s;
                       })
                   };
               }
-              // Schedule and grades are usually updated via onUpdateClass directly in dashboard for specific class
-              // But if called via this handler (legacy support):
-              if (type === 'schedule') return { ...c, schedule: item };
           }
           return c;
       });
 
       setClasses(newClasses);
 
-      // 2. Persist to Firebase
+      if (db) {
+        const batch = writeBatch(db);
+        const classesToUpdate = newClasses.filter(c => c.gradeLevel === grade);
+        classesToUpdate.forEach(c => {
+            const ref = doc(db, 'classes', c.id);
+            batch.set(ref, c);
+        });
+        await batch.commit();
+      }
+  };
+
+  const handleDeleteClassResource = async (grade: string, type: 'exam', itemId: string, semId: string) => {
+      const newClasses = classes.map(cls => {
+          if (cls.gradeLevel === grade) {
+              return {
+                  ...cls,
+                  semesters: cls.semesters.map(sem => {
+                      if (sem.id === semId) {
+                          return {
+                              ...sem,
+                              exams: sem.exams?.filter(e => e.id !== itemId) || []
+                          };
+                      }
+                      return sem;
+                  })
+              };
+          }
+          return cls;
+      });
+
+      setClasses(newClasses);
+
       if (db) {
         const batch = writeBatch(db);
         const classesToUpdate = newClasses.filter(c => c.gradeLevel === grade);
@@ -1535,6 +1627,7 @@ const App: React.FC = () => {
            onDeleteStudent={handleDeleteStudent}
            onSaveExtra={handleSaveExtra}
            onDeleteExtra={handleDeleteExtra}
+           onDeleteClassResource={handleDeleteClassResource}
            onLogout={() => setView(ViewState.LANDING)}
         />;
       case ViewState.EXTRA_CATEGORY_LIST:
