@@ -39,7 +39,7 @@ export interface Chapter {
 export interface Semester {
   id: 'ganjil' | 'genap';
   name: string;
-  grades?: ResourceItem; // Nilai is per semester now
+  grades?: ResourceItem; // Deprecated in favor of global, but kept for type compatibility if needed
   exams?: ResourceItem[]; // Bank Soal STS / SAS
   chapters: Chapter[];
 }
@@ -50,8 +50,7 @@ export interface ClassData {
   gradeLevel: '7' | '8' | '9'; 
   color: string; 
   icon: string;
-  schedule?: ResourceItem; 
-  grades?: ResourceItem; 
+  schedule?: ResourceItem; // Deprecated
   semesters: Semester[];
 }
 
@@ -64,6 +63,10 @@ export interface SchoolProfile {
   phoneNumber: string; 
   greetingText: string; // Teks salam di robot
   quotes: string[]; // 5 Kata motivasi
+  
+  // Universal Resources
+  globalSchedule?: ResourceItem;
+  globalGrades?: ResourceItem;
 }
 
 export interface Student {

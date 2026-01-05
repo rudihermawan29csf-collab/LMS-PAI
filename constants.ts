@@ -15,7 +15,19 @@ export const DEFAULT_SCHOOL_PROFILE: SchoolProfile = {
     "Jadilah seperti bunga yang memberikan keharuman bahkan kepada tangan yang telah merusaknya. – Ali bin Abi Thalib",
     "Pendidikan adalah tiket ke masa depan, hari esok dimiliki oleh orang-orang yang mempersiapkan dirinya hari ini.",
     "Bekerjalah untuk duniamu seakan-akan kamu hidup selamanya, dan beramallah untuk akhiratmu seakan-akan kamu mati besok."
-  ]
+  ],
+  globalSchedule: {
+    id: 'global-schedule',
+    title: 'Jadwal Pelajaran PAI',
+    type: 'html',
+    content: '<p class="text-center text-gray-500 italic">Jadwal pelajaran belum diatur oleh admin.</p>'
+  },
+  globalGrades: {
+    id: 'global-grades',
+    title: 'Rekapitulasi Nilai Siswa',
+    type: 'html',
+    content: '<p class="text-center text-gray-500 italic">Data nilai belum dipublikasikan.</p>'
+  }
 };
 
 export const FEATURES = [
@@ -135,12 +147,6 @@ const createClass = (id: string, name: string, gradeLevel: '7' | '8' | '9', colo
   gradeLevel,
   color,
   icon: gradeLevel === '7' ? 'book-open' : gradeLevel === '8' ? 'compass' : 'star',
-  schedule: {
-    id: `sch-${id}`,
-    title: `Jadwal Pelajaran ${name}`,
-    type: 'html',
-    content: '<p class="text-gray-500 italic">Jadwal belum diatur.</p>'
-  },
   semesters: [
     createSemester(gradeLevel, 'ganjil', 'Semester Ganjil'),
     createSemester(gradeLevel, 'genap', 'Semester Genap')
