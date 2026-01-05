@@ -79,11 +79,6 @@ const getYoutubeId = (url?: string) => {
 // --- Widgets ---
 
 const PrayerTimesWidget: React.FC = () => {
-  const [times, setTimes] = useState<any>(null);
-  const [locationName, setLocationName] = useState('Mendeteksi Lokasi...');
-  const [currentTime, setCurrentTime] = useState(new Date());
-  const [nextPrayer, setNextPrayer] = useState<string>('');
-
   const fallbackTimes = {
     Fajr: "04:15",
     Dhuhr: "11:40",
@@ -92,33 +87,40 @@ const PrayerTimesWidget: React.FC = () => {
     Isha: "19:00"
   };
 
+  // Inisialisasi langsung dengan fallbackTimes agar widget langsung muncul
+  const [times, setTimes] = useState<any>(fallbackTimes);
+  const [locationName, setLocationName] = useState('Waktu Jakarta (Default)');
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [nextPrayer, setNextPrayer] = useState<string>('Memuat jadwal...');
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    
     if (navigator.geolocation) {
+      // Ubah status loading lokasi tapi jangan hapus times dulu
+      setLocationName('Mendeteksi Lokasi...');
       navigator.geolocation.getCurrentPosition(async (position) => {
         const { latitude, longitude } = position.coords;
         try {
           const date = new Date();
-          const response = await fetch(`https://api.aladhan.com/v1/timings/${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}?latitude=${latitude}&longitude=${longitude}&method=20`); 
+          const day = String(date.getDate()).padStart(2, '0');
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const year = date.getFullYear();
+          
+          const response = await fetch(`https://api.aladhan.com/v1/timings/${day}-${month}-${year}?latitude=${latitude}&longitude=${longitude}&method=20`); 
           const data = await response.json();
           if (data.code === 200) {
             setTimes(data.data.timings);
             setLocationName('Lokasi Anda');
           } else {
-             setTimes(fallbackTimes);
              setLocationName('Waktu Jakarta (Offline)');
           }
         } catch (error) {
-          setTimes(fallbackTimes);
           setLocationName("Waktu Jakarta (Offline)");
         }
       }, (error) => {
-        setTimes(fallbackTimes);
         setLocationName("Waktu Jakarta (Default)");
       });
-    } else {
-      setTimes(fallbackTimes);
-      setLocationName("Waktu Jakarta (Default)");
     }
     return () => clearInterval(timer);
   }, []);
@@ -126,39 +128,52 @@ const PrayerTimesWidget: React.FC = () => {
   useEffect(() => {
     if (times) {
       const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      // Helper untuk membersihkan string waktu (misal "04:15 (WIB)" -> "04:15")
+      const cleanTime = (t: string) => t ? t.split(' ')[0] : '00:00';
+
       const prayerList = [
-        { name: 'Subuh', time: times.Fajr },
-        { name: 'Dzuhur', time: times.Dhuhr },
-        { name: 'Ashar', time: times.Asr },
-        { name: 'Maghrib', time: times.Maghrib },
-        { name: 'Isya', time: times.Isha },
+        { name: 'Subuh', time: cleanTime(times.Fajr) },
+        { name: 'Dzuhur', time: cleanTime(times.Dhuhr) },
+        { name: 'Ashar', time: cleanTime(times.Asr) },
+        { name: 'Maghrib', time: cleanTime(times.Maghrib) },
+        { name: 'Isya', time: cleanTime(times.Isha) },
       ];
+
       let targetPrayer = null;
       let targetTime = null;
+      let targetDate = null;
+
       for (const p of prayerList) {
         const [h, m] = p.time.split(':').map(Number);
-        const pMinutes = h * 60 + m;
-        if (pMinutes > currentMinutes) {
+        const pDate = new Date();
+        pDate.setHours(h, m, 0, 0);
+        
+        if (pDate > now) {
           targetPrayer = p.name;
           targetTime = p.time;
+          targetDate = pDate;
           break;
         }
       }
+
+      // Jika tidak ada jadwal tersisa hari ini, ambil Subuh besok
       if (!targetPrayer) {
-        targetPrayer = 'Subuh';
-        targetTime = times.Fajr;
-      }
-      const [targetH, targetM] = targetTime.split(':').map(Number);
-      const targetDate = new Date();
-      targetDate.setHours(targetH, targetM, 0);
-      if (targetDate < now) {
+        const p = prayerList[0]; // Subuh
+        const [h, m] = p.time.split(':').map(Number);
+        targetPrayer = p.name;
+        targetTime = p.time;
+        targetDate = new Date();
         targetDate.setDate(targetDate.getDate() + 1);
+        targetDate.setHours(h, m, 0, 0);
       }
-      const diffMs = targetDate.getTime() - now.getTime();
-      const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-      const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-      setNextPrayer(`Menuju waktu ${targetPrayer} (${targetTime}) - ${diffHrs} jam ${diffMins} menit lagi`);
+
+      if (targetDate) {
+        const diffMs = targetDate.getTime() - now.getTime();
+        const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000); // Tambahkan detik
+        setNextPrayer(`Menuju ${targetPrayer} (${targetTime}) - ${diffHrs}j ${diffMins}m ${diffSecs}d`);
+      }
     }
   }, [times, currentTime]);
 
@@ -166,18 +181,20 @@ const PrayerTimesWidget: React.FC = () => {
     return new Intl.DateTimeFormat('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date);
   };
 
+  const formatTimeOnly = (t: string) => t ? t.split(' ')[0] : '-';
+
   return (
     <div className="flex flex-col items-center justify-center mb-8 gap-4">
-      <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl px-6 py-2 shadow-sm flex items-center gap-4 text-sm font-medium text-gray-600">
+      <div className="bg-white/40 backdrop-blur-xl border border-white/60 rounded-2xl px-6 py-2 shadow-sm flex items-center gap-4 text-sm font-medium text-gray-600 flex-wrap justify-center">
          <span className="flex items-center gap-1.5"><Calendar size={14} className="text-blue-500"/> {formatDate(currentTime)}</span>
-         <span className="w-px h-4 bg-gray-300"></span>
-         <span className="flex items-center gap-1.5"><Clock size={14} className="text-blue-500"/> {currentTime.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'})}</span>
-         <span className="w-px h-4 bg-gray-300"></span>
+         <span className="hidden sm:inline w-px h-4 bg-gray-300"></span>
+         <span className="flex items-center gap-1.5"><Clock size={14} className="text-blue-500"/> {currentTime.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit', second: '2-digit'})}</span>
+         <span className="hidden sm:inline w-px h-4 bg-gray-300"></span>
          <span className="flex items-center gap-1.5"><MapPin size={14} className="text-red-500"/> {locationName}</span>
       </div>
       {times && (
-        <div className="flex flex-col items-center gap-3">
-          <div className="grid grid-cols-5 gap-2 sm:gap-4">
+        <div className="flex flex-col items-center gap-3 w-full max-w-2xl mx-auto">
+          <div className="grid grid-cols-5 gap-2 sm:gap-4 w-full">
             {[
               { name: 'Subuh', time: times.Fajr },
               { name: 'Dzuhur', time: times.Dhuhr },
@@ -185,13 +202,13 @@ const PrayerTimesWidget: React.FC = () => {
               { name: 'Maghrib', time: times.Maghrib },
               { name: 'Isya', time: times.Isha },
             ].map((item) => (
-              <div key={item.name} className="flex flex-col items-center bg-white/60 backdrop-blur-md rounded-xl p-2 sm:p-3 border border-white/50 shadow-sm min-w-[70px]">
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">{item.name}</span>
-                <span className="text-sm sm:text-lg font-bold text-gray-800">{item.time}</span>
+              <div key={item.name} className="flex flex-col items-center bg-white/60 backdrop-blur-md rounded-xl p-2 sm:p-3 border border-white/50 shadow-sm transition-transform hover:scale-105">
+                <span className="text-[10px] sm:text-xs uppercase font-bold text-gray-400 tracking-wider mb-1">{item.name}</span>
+                <span className="text-sm sm:text-lg font-bold text-gray-800">{formatTimeOnly(item.time)}</span>
               </div>
             ))}
           </div>
-          <div className="text-sm font-medium text-blue-600 bg-blue-50 px-4 py-1 rounded-full animate-pulse border border-blue-100">
+          <div className="text-sm font-medium text-blue-700 bg-blue-100/80 px-6 py-2 rounded-full animate-pulse border border-blue-200 shadow-sm mt-2">
              {nextPrayer}
           </div>
         </div>
@@ -648,7 +665,15 @@ const ChapterContentView: React.FC<{ chapter: Chapter; onBack: () => void }> = (
         <motion.div initial={{opacity:0}} animate={{opacity:1}} key={video.id}>
            <h2 className="text-2xl font-bold text-gray-900 mb-6 border-b pb-4">{video.title}</h2>
            {video.type === 'link' && video.url ? (
-             <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} title={video.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-[300px] md:h-[400px]"></iframe></div>
+             video.url.includes('youtu') ? (
+               <div className="aspect-w-16 aspect-h-9 rounded-xl overflow-hidden shadow-lg"><iframe src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} title={video.title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen className="w-full h-[300px] md:h-[400px]"></iframe></div>
+             ) : (
+                <div className="p-6 bg-blue-50 rounded-xl flex flex-col items-center">
+                   <Youtube size={48} className="text-blue-500 mb-4"/>
+                   <p className="mb-4 text-gray-600">Video ini adalah tautan eksternal.</p>
+                   <a href={video.url} target="_blank" className="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700">Buka Video</a>
+                </div>
+             )
            ) : <RichHtmlContent content={video.content || ''} />}
         </motion.div>
       );
@@ -849,8 +874,23 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
         {formData.videos.map(v => (
           <div key={v.id} className="p-4 border rounded-xl bg-gray-50 relative group">
             <button onClick={() => deleteVideo(v.id)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
-            <Input label="Judul Video" value={v.title} onChange={e => updateVideo(v.id, { title: e.target.value })} />
-            <Input label="URL YouTube" value={v.url || ''} onChange={e => updateVideo(v.id, { url: e.target.value })} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+                <div className="sm:col-span-2">
+                    <Input label="Judul Video" value={v.title} onChange={e => updateVideo(v.id, { title: e.target.value })} className="mb-0" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe</label>
+                    <select className="w-full p-3 rounded-xl border border-gray-300 bg-white" value={v.type || 'link'} onChange={e => updateVideo(v.id, { type: e.target.value as any })}>
+                        <option value="link">URL Youtube/Link</option>
+                        <option value="html">HTML Embed Code</option>
+                    </select>
+                </div>
+            </div>
+            {v.type === 'html' ? (
+                <TextArea label="Kode Embed HTML" value={v.content || ''} onChange={e => updateVideo(v.id, { content: e.target.value })} className="font-mono text-xs h-24" placeholder="<iframe...>" />
+            ) : (
+                <Input label="URL Video" value={v.url || ''} onChange={e => updateVideo(v.id, { url: e.target.value })} placeholder="https://youtube.com/..." />
+            )}
           </div>
         ))}
       </div>
@@ -862,8 +902,23 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
         {formData.quizzes.map(q => (
           <div key={q.id} className="p-4 border rounded-xl bg-gray-50 relative group">
             <button onClick={() => deleteQuiz(q.id)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
-            <Input label="Judul Kuis" value={q.title} onChange={e => updateQuiz(q.id, { title: e.target.value })} />
-            <Input label="URL Kuis (GForm/Quizizz)" value={q.url || ''} onChange={e => updateQuiz(q.id, { url: e.target.value })} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+                <div className="sm:col-span-2">
+                    <Input label="Judul Kuis" value={q.title} onChange={e => updateQuiz(q.id, { title: e.target.value })} className="mb-0" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe</label>
+                    <select className="w-full p-3 rounded-xl border border-gray-300 bg-white" value={q.type || 'link'} onChange={e => updateQuiz(q.id, { type: e.target.value as any })}>
+                        <option value="link">URL Link</option>
+                        <option value="html">HTML Embed Code</option>
+                    </select>
+                </div>
+            </div>
+            {q.type === 'html' ? (
+                <TextArea label="Kode Embed HTML" value={q.content || ''} onChange={e => updateQuiz(q.id, { content: e.target.value })} className="font-mono text-xs h-24" placeholder="<iframe...>" />
+            ) : (
+                <Input label="URL Kuis" value={q.url || ''} onChange={e => updateQuiz(q.id, { url: e.target.value })} placeholder="https://forms.gle/..." />
+            )}
           </div>
         ))}
       </div>
