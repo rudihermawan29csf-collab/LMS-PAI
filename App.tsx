@@ -1,4 +1,3 @@
-// ... (imports remain the same, ensuring all are present)
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -276,8 +275,6 @@ const RichHtmlContent: React.FC<{ content: string; className?: string; iframeHei
   );
 };
 
-// ... (AdminContentEditor, AdminDashboardView, StudentLoginView, ClassDetailView, ChapterContentView remain roughly the same, I will minimize changes to them unless necessary for consistency)
-
 const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: Chapter) => void }> = ({ chapter, onSave }) => {
     const [formData, setFormData] = useState<Chapter>(chapter);
     useEffect(() => { setFormData(chapter); }, [chapter]);
@@ -424,7 +421,6 @@ const AdminDashboardView: React.FC<{
   onDeleteClassResource: (grade: string, type: 'exam', itemId: string, semId: string) => void;
   onLogout: () => void;
 }> = ({ classes, schoolProfile, students, extras, onUpdateChapterByGrade, onUpdateClassResourceByGrade, onUpdateClass, onUpdateProfile, onSaveStudent, onDeleteStudent, onSaveExtra, onDeleteExtra, onDeleteClassResource, onLogout }) => {
-  // ... (Full admin dashboard implementation as provided previously)
   const [tab, setTab] = useState<'profile' | 'content' | 'students' | 'extras' | 'schedule' | 'personalization'>('profile');
   const [profileForm, setProfileForm] = useState(schoolProfile);
   const handleProfileSave = () => { onUpdateProfile(profileForm); alert('Konfigurasi diperbarui!'); };
@@ -1111,7 +1107,7 @@ const ChapterContentView: React.FC<{
   const [activeTab, setActiveTab] = useState<'materi' | 'video' | 'kuis'>('materi');
 
   return (
-    <div className="max-w-4xl mx-auto animate-fade-in-up">
+    <div className="max-w-7xl mx-auto animate-fade-in-up">
        <div className="mb-6">
           <Button variant="secondary" onClick={onBack} className="mb-4 text-sm py-2 px-4">
              <ArrowLeft size={16} /> Kembali ke Daftar Bab
@@ -1208,7 +1204,7 @@ const ChapterContentView: React.FC<{
           )}
 
           {activeTab === 'kuis' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+            <div className="grid grid-cols-1 gap-6 animate-fade-in">
                {chapter.quizzes.map(quiz => (
                  <Card key={quiz.id} className="flex flex-col h-full border-l-4 border-l-purple-500">
                     <div className="flex-1">
@@ -1221,7 +1217,7 @@ const ChapterContentView: React.FC<{
                     <div className="mt-6 pt-4 border-t border-gray-100">
                         {quiz.type === 'html' ? (
                              <div className="w-full overflow-hidden rounded-lg bg-gray-50 border border-gray-200">
-                                <RichHtmlContent content={quiz.content || ''} iframeHeight="h-[400px]" />
+                                <RichHtmlContent content={quiz.content || ''} iframeHeight="h-[85vh]" />
                              </div>
                         ) : (
                              <a href={quiz.url} target="_blank" rel="noreferrer" className="block w-full text-center py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
