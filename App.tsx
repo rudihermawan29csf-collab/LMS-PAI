@@ -36,6 +36,7 @@ import {
   Sparkles,
   MoreHorizontal,
   ChevronDown,
+  ChevronUp,
   Sun,
   Hand,
   MessageCircle,
@@ -56,7 +57,9 @@ import {
   Star,
   LogIn,
   Eye,
-  EyeOff
+  EyeOff,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 // Import Firebase
@@ -283,6 +286,18 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
 
     useEffect(() => { setFormData(chapter); }, [chapter]);
     const handleSave = () => { onSave(formData); alert('Perubahan materi bab berhasil disimpan!'); };
+    
+    // --- Move Helper Functions ---
+    const moveItem = (index: number, direction: 'up' | 'down', type: 'contents' | 'videos' | 'quizzes') => {
+        const list = [...formData[type]] as any[];
+        if (direction === 'up' && index > 0) {
+            [list[index], list[index - 1]] = [list[index - 1], list[index]];
+        } else if (direction === 'down' && index < list.length - 1) {
+            [list[index], list[index + 1]] = [list[index + 1], list[index]];
+        }
+        setFormData({ ...formData, [type]: list });
+    };
+
     const addContent = () => {
       const newSection: ContentSection = { id: `section-${Date.now()}`, title: 'Sub Bab Baru', type: 'html', content: '' };
       setFormData({ ...formData, contents: [...formData.contents, newSection] });
@@ -293,6 +308,7 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
     const deleteContent = (id: string) => {
       setFormData({ ...formData, contents: formData.contents.filter(c => c.id !== id) });
     };
+    
     const addVideo = () => {
       const newItem: ResourceItem = { id: `video-${Date.now()}`, title: 'Video Baru', type: 'link', url: '' };
       setFormData({ ...formData, videos: [...formData.videos, newItem] });
@@ -303,6 +319,7 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
     const deleteVideo = (id: string) => {
       setFormData({ ...formData, videos: formData.videos.filter(v => v.id !== id) });
     };
+    
     const addQuiz = () => {
       const newItem: ResourceItem = { id: `quiz-${Date.now()}`, title: 'Kuis Baru', type: 'link', url: '' };
       setFormData({ ...formData, quizzes: [...formData.quizzes, newItem] });
@@ -331,10 +348,14 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
             <h3 className="font-bold flex items-center gap-2"><BookOpen size={18} /> Bagian Materi (HTML/Tautan)</h3>
             <button onClick={addContent} className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded hover:bg-blue-200">+ Tambah</button>
           </div>
-          {formData.contents.map(section => (
+          {formData.contents.map((section, index) => (
             <div key={section.id} className="p-4 border rounded-xl bg-gray-50 relative group">
-              <button onClick={() => deleteContent(section.id)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
+              <div className="absolute top-2 right-2 flex gap-1">
+                  <button onClick={() => moveItem(index, 'up', 'contents')} disabled={index === 0} className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-600 disabled:opacity-30"><ArrowUp size={14}/></button>
+                  <button onClick={() => moveItem(index, 'down', 'contents')} disabled={index === formData.contents.length - 1} className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-600 disabled:opacity-30"><ArrowDown size={14}/></button>
+                  <button onClick={() => deleteContent(section.id)} className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-500"><Trash2 size={14}/></button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3 mt-4 sm:mt-0">
                 <Input label="Judul Materi" value={section.title} onChange={e => updateContent(section.id, { title: e.target.value })} className="mb-0"/>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Tipe</label>
@@ -372,10 +393,14 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
             <h3 className="font-bold flex items-center gap-2"><Youtube size={18} /> Video Pembelajaran</h3>
             <button onClick={addVideo} className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded hover:bg-red-200">+ Tambah</button>
           </div>
-          {formData.videos.map(v => (
+          {formData.videos.map((v, index) => (
             <div key={v.id} className="p-4 border rounded-xl bg-gray-50 relative group">
-              <button onClick={() => deleteVideo(v.id)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+              <div className="absolute top-2 right-2 flex gap-1">
+                  <button onClick={() => moveItem(index, 'up', 'videos')} disabled={index === 0} className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-600 disabled:opacity-30"><ArrowUp size={14}/></button>
+                  <button onClick={() => moveItem(index, 'down', 'videos')} disabled={index === formData.videos.length - 1} className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-600 disabled:opacity-30"><ArrowDown size={14}/></button>
+                  <button onClick={() => deleteVideo(v.id)} className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-500"><Trash2 size={14}/></button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3 mt-4 sm:mt-0">
                   <div className="sm:col-span-2">
                       <Input label="Judul Video" value={v.title} onChange={e => updateVideo(v.id, { title: e.target.value })} className="mb-0" />
                   </div>
@@ -402,10 +427,14 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
             <h3 className="font-bold flex items-center gap-2"><Gamepad size={18} /> Kuis Interaktif</h3>
             <button onClick={addQuiz} className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded hover:bg-green-200">+ Tambah</button>
           </div>
-          {formData.quizzes.map(q => (
+          {formData.quizzes.map((q, index) => (
             <div key={q.id} className="p-4 border rounded-xl bg-gray-50 relative group">
-              <button onClick={() => deleteQuiz(q.id)} className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+              <div className="absolute top-2 right-2 flex gap-1">
+                  <button onClick={() => moveItem(index, 'up', 'quizzes')} disabled={index === 0} className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-600 disabled:opacity-30"><ArrowUp size={14}/></button>
+                  <button onClick={() => moveItem(index, 'down', 'quizzes')} disabled={index === formData.quizzes.length - 1} className="p-1 bg-gray-200 hover:bg-gray-300 rounded text-gray-600 disabled:opacity-30"><ArrowDown size={14}/></button>
+                  <button onClick={() => deleteQuiz(q.id)} className="p-1 bg-red-100 hover:bg-red-200 rounded text-red-500"><Trash2 size={14}/></button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3 mt-4 sm:mt-0">
                   <div className="sm:col-span-2">
                       <Input label="Judul Kuis" value={q.title} onChange={e => updateQuiz(q.id, { title: e.target.value })} className="mb-0" />
                   </div>
@@ -881,39 +910,6 @@ const AdminDashboardView: React.FC<{
                       </div>
                   </Card>
                )}
-               
-               {/* Content Management Tab */}
-               {tab === 'content' && (
-                  <Card>
-                      <SectionTitle title="Manajemen Materi" subtitle="Edit konten per bab untuk setiap jenjang kelas." />
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                          <div>
-                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Jenjang</label>
-                              <select className="w-full p-3 rounded-xl border border-gray-200 bg-white font-semibold" value={selGrade} onChange={e => setSelGrade(e.target.value)}>
-                                  <option value="7">Kelas 7</option>
-                                  <option value="8">Kelas 8</option>
-                                  <option value="9">Kelas 9</option>
-                              </select>
-                          </div>
-                          <div>
-                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Semester</label>
-                              <select className="w-full p-3 rounded-xl border border-gray-200 bg-white font-semibold" value={selSemId} onChange={e => setSelSemId(e.target.value)}>
-                                  <option value="ganjil">Ganjil</option>
-                                  <option value="genap">Genap</option>
-                              </select>
-                          </div>
-                          <div className="md:col-span-2">
-                              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Pilih Bab</label>
-                              <select className="w-full p-3 rounded-xl border border-gray-200 bg-white font-semibold" value={selChapId} onChange={e => setSelChapId(e.target.value)}>
-                                  {currentSemester?.chapters.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
-                              </select>
-                          </div>
-                      </div>
-                      <div className="border-t pt-6">
-                          {chapForm ? <AdminContentEditor chapter={chapForm} onSave={handleChapterUpdate} /> : <p className="text-center py-10 text-gray-400">Loading materi...</p>}
-                      </div>
-                  </Card>
-               )}
 
                {/* Extras Tab */}
                {tab === 'extras' && (
@@ -1171,6 +1167,12 @@ const ChapterContentView: React.FC<{
   onBack: () => void;
 }> = ({ chapter, onBack }) => {
   const [activeTab, setActiveTab] = useState<'materi' | 'video' | 'kuis'>('materi');
+  // State for Accordion
+  const [expandedSectionId, setExpandedSectionId] = useState<string | null>(null);
+
+  const toggleSection = (id: string) => {
+    setExpandedSectionId(expandedSectionId === id ? null : id);
+  };
 
   return (
     <div className="max-w-7xl mx-auto animate-fade-in-up">
@@ -1193,7 +1195,7 @@ const ChapterContentView: React.FC<{
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => { setActiveTab(tab.id as any); setExpandedSectionId(null); }} // Reset expanded on tab change
               className={`flex items-center gap-2 px-6 py-4 border-b-2 font-bold text-sm whitespace-nowrap transition-all ${activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
             >
               {tab.icon}
@@ -1205,93 +1207,130 @@ const ChapterContentView: React.FC<{
           ))}
        </div>
 
-       {/* Content Area */}
+       {/* Content Area - ACCORDION STYLE */}
        <div className="min-h-[400px]">
           {activeTab === 'materi' && (
-            <div className="space-y-8 animate-fade-in">
+            <div className="space-y-4 animate-fade-in">
                {chapter.contents.map((section) => (
-                 <Card key={section.id} className="p-8">
-                    <h3 className="text-2xl font-bold text-gray-800 mb-6 border-b pb-4">{section.title}</h3>
-                    {section.type === 'link' ? (
-                        <div className="text-center py-10">
-                           <ExternalLink size={48} className="mx-auto text-gray-300 mb-4"/>
-                           <p className="text-gray-600 mb-6">Materi ini tersedia di tautan eksternal.</p>
-                           <a href={section.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">Buka Materi</a>
+                 <div key={section.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm transition-all hover:shadow-md">
+                    <button 
+                        onClick={() => toggleSection(section.id)}
+                        className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-lg ${expandedSectionId === section.id ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-500'}`}>
+                                <BookOpen size={20}/>
+                            </div>
+                            <h3 className={`text-lg font-bold ${expandedSectionId === section.id ? 'text-blue-700' : 'text-gray-800'}`}>{section.title}</h3>
                         </div>
-                    ) : (
-                        <RichHtmlContent content={section.content} />
+                        {expandedSectionId === section.id ? <ChevronUp size={20} className="text-blue-500"/> : <ChevronDown size={20} className="text-gray-400"/>}
+                    </button>
+                    
+                    {expandedSectionId === section.id && (
+                        <div className="p-8 border-t border-gray-100 bg-gray-50/30">
+                            {section.type === 'link' ? (
+                                <div className="text-center py-6">
+                                    <ExternalLink size={40} className="mx-auto text-gray-300 mb-4"/>
+                                    <p className="text-gray-600 mb-4">Materi ini tersedia di tautan eksternal.</p>
+                                    <a href={section.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700">Buka Materi</a>
+                                </div>
+                            ) : (
+                                <RichHtmlContent content={section.content} />
+                            )}
+                        </div>
                     )}
-                 </Card>
+                 </div>
                ))}
                {chapter.contents.length === 0 && <div className="text-center py-12 text-gray-400">Belum ada materi teks untuk bab ini.</div>}
             </div>
           )}
 
           {activeTab === 'video' && (
-            <div className="grid grid-cols-1 gap-6 animate-fade-in">
+            <div className="space-y-4 animate-fade-in">
                {chapter.videos.map(video => (
-                 <Card key={video.id} className="overflow-hidden p-0">
-                    <div className="bg-gray-900 aspect-video w-full flex items-center justify-center relative group">
-                        {video.type === 'html' ? (
-                           <div className="w-full h-full" dangerouslySetInnerHTML={{__html: video.content || ''}} />
-                        ) : (
-                           <>
-                             {getYoutubeId(video.url) ? (
-                               <iframe 
-                                 width="100%" 
-                                 height="100%" 
-                                 src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} 
-                                 title={video.title}
-                                 frameBorder="0"
-                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                 allowFullScreen
-                               ></iframe>
-                             ) : (
-                               <div className="flex flex-col items-center text-white/50">
-                                  <MonitorPlay size={48} className="mb-2"/>
-                                  <span className="text-sm">Video External</span>
-                               </div>
-                             )}
-                           </>
-                        )}
-                    </div>
-                    <div className="p-6">
-                       <h3 className="text-lg font-bold text-gray-800 mb-2">{video.title}</h3>
-                       {video.type === 'link' && (
-                         <a href={video.url} target="_blank" rel="noreferrer" className="text-blue-600 text-sm font-semibold hover:underline flex items-center gap-1">
-                           Buka di Tab Baru <ExternalLink size={12}/>
-                         </a>
-                       )}
-                    </div>
-                 </Card>
+                 <div key={video.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm transition-all hover:shadow-md">
+                    <button 
+                        onClick={() => toggleSection(video.id)}
+                        className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-lg ${expandedSectionId === video.id ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                                <Youtube size={20}/>
+                            </div>
+                            <h3 className={`text-lg font-bold ${expandedSectionId === video.id ? 'text-red-700' : 'text-gray-800'}`}>{video.title}</h3>
+                        </div>
+                        {expandedSectionId === video.id ? <ChevronUp size={20} className="text-red-500"/> : <ChevronDown size={20} className="text-gray-400"/>}
+                    </button>
+
+                    {expandedSectionId === video.id && (
+                         <div className="p-6 border-t border-gray-100 bg-gray-900">
+                             <div className="aspect-video w-full flex items-center justify-center relative rounded-xl overflow-hidden bg-black">
+                                {video.type === 'html' ? (
+                                    <div className="w-full h-full" dangerouslySetInnerHTML={{__html: video.content || ''}} />
+                                ) : (
+                                    <>
+                                        {getYoutubeId(video.url) ? (
+                                            <iframe 
+                                                width="100%" 
+                                                height="100%" 
+                                                src={`https://www.youtube.com/embed/${getYoutubeId(video.url)}`} 
+                                                title={video.title}
+                                                frameBorder="0"
+                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                allowFullScreen
+                                            ></iframe>
+                                        ) : (
+                                            <div className="flex flex-col items-center text-white/50">
+                                                <MonitorPlay size={48} className="mb-2"/>
+                                                <span className="text-sm">Video External</span>
+                                                <a href={video.url} target="_blank" rel="noreferrer" className="mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-white font-bold text-sm">Buka Video</a>
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                             </div>
+                         </div>
+                    )}
+                 </div>
                ))}
                {chapter.videos.length === 0 && <div className="text-center py-12 text-gray-400">Belum ada video pembelajaran untuk bab ini.</div>}
             </div>
           )}
 
           {activeTab === 'kuis' && (
-            <div className="grid grid-cols-1 gap-6 animate-fade-in">
+            <div className="space-y-4 animate-fade-in">
                {chapter.quizzes.map(quiz => (
-                 <Card key={quiz.id} className="flex flex-col h-full border-l-4 border-l-purple-500">
-                    <div className="flex-1">
-                       <div className="w-12 h-12 bg-purple-100 rounded-2xl flex items-center justify-center text-purple-600 mb-4">
-                          <Gamepad size={24}/>
-                       </div>
-                       <h3 className="text-lg font-bold text-gray-800 mb-2">{quiz.title}</h3>
-                       <p className="text-sm text-gray-500">Kerjakan kuis untuk menguji pemahaman materi.</p>
-                    </div>
-                    <div className="mt-6 pt-4 border-t border-gray-100">
-                        {quiz.type === 'html' ? (
-                             <div className="w-full overflow-hidden rounded-lg bg-gray-50 border border-gray-200">
-                                <RichHtmlContent content={quiz.content || ''} iframeHeight="h-[85vh]" />
-                             </div>
-                        ) : (
-                             <a href={quiz.url} target="_blank" rel="noreferrer" className="block w-full text-center py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
-                               Mulai Kuis
-                             </a>
-                        )}
-                    </div>
-                 </Card>
+                 <div key={quiz.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm transition-all hover:shadow-md border-l-4 border-l-purple-500">
+                    <button 
+                        onClick={() => toggleSection(quiz.id)}
+                        className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className={`p-2 rounded-lg ${expandedSectionId === quiz.id ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-500'}`}>
+                                <Gamepad size={20}/>
+                            </div>
+                            <h3 className={`text-lg font-bold ${expandedSectionId === quiz.id ? 'text-purple-700' : 'text-gray-800'}`}>{quiz.title}</h3>
+                        </div>
+                        {expandedSectionId === quiz.id ? <ChevronUp size={20} className="text-purple-500"/> : <ChevronDown size={20} className="text-gray-400"/>}
+                    </button>
+                    
+                    {expandedSectionId === quiz.id && (
+                        <div className="p-6 border-t border-gray-100 bg-gray-50/50">
+                             {quiz.type === 'html' ? (
+                                 <div className="w-full overflow-hidden rounded-lg bg-white border border-gray-200 shadow-inner">
+                                    <RichHtmlContent content={quiz.content || ''} iframeHeight="h-[85vh]" />
+                                 </div>
+                             ) : (
+                                 <div className="text-center py-8">
+                                     <p className="text-gray-600 mb-6">Silakan kerjakan kuis melalui tautan berikut:</p>
+                                     <a href={quiz.url} target="_blank" rel="noreferrer" className="inline-block w-full sm:w-auto px-8 py-3 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-colors shadow-lg shadow-purple-200">
+                                       Mulai Kuis
+                                     </a>
+                                 </div>
+                             )}
+                        </div>
+                    )}
+                 </div>
                ))}
                {chapter.quizzes.length === 0 && <div className="col-span-full text-center py-12 text-gray-400">Belum ada kuis untuk bab ini.</div>}
             </div>
@@ -1324,6 +1363,9 @@ const App: React.FC = () => {
   const [expandedGrade, setExpandedGrade] = useState<string | null>(null);
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [showGlobalContent, setShowGlobalContent] = useState<ResourceItem | null>(null);
+  
+  // Literacy Accordion State
+  const [expandedExtraId, setExpandedExtraId] = useState<string | null>(null);
 
   // ... (Effects and Handlers remain the same)
   useEffect(() => {
@@ -1524,26 +1566,49 @@ const App: React.FC = () => {
       if (view === ViewState.CLASS_DETAIL) { const cls = classes.find(c => c.id === selectedClassId); return cls ? (<ClassDetailView classData={cls} student={currentUser} onBack={() => { setCurrentUser(null); setView(ViewState.STUDENT_LOGIN); }} onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }} />) : <div>Loading...</div>; }
       if (view === ViewState.CHAPTER_CONTENT) { const cls = classes.find(c => c.id === selectedClassId); let chapter = null; cls?.semesters.forEach(s => s.chapters.forEach(c => { if (c.id === selectedChapterId) chapter = c; })); return chapter ? (<ChapterContentView chapter={chapter} onBack={() => setView(ViewState.CLASS_DETAIL)} />) : <div>Loading...</div>; }
       if (view === ViewState.EXTRA_CATEGORY_LIST) {
+        const categoryExtras = extras.filter(e => e.category === selectedCategory);
         return (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                  <div className="flex items-center gap-4 mb-6">
-                    <Button variant="secondary" onClick={() => setView(ViewState.LANDING)}><ArrowLeft size={18}/> Kembali</Button>
-                    <h2 className="text-2xl font-bold">Literasi: {selectedCategory}</h2>
+                    <Button variant="secondary" onClick={() => { setView(ViewState.LANDING); setExpandedExtraId(null); }}><ArrowLeft size={18}/> Kembali</Button>
+                    <h2 className="text-2xl font-bold capitalize">Literasi: {selectedCategory}</h2>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {extras.filter(e => e.category === selectedCategory).map(ex => (
-                        <Card key={ex.id} onClick={() => setShowGlobalContent({id: ex.id, title: ex.title, type: ex.type, url: ex.url, content: ex.content})} className="cursor-pointer hover:shadow-lg transition-all">
-                             <div className="flex items-start justify-between mb-4">
-                                <div className={`p-2 rounded-lg ${ex.type === 'link' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
-                                    {ex.type === 'link' ? <LinkIcon size={20}/> : <FileText size={20}/>}
-                                </div>
-                             </div>
-                             <h3 className="font-bold text-lg mb-2">{ex.title}</h3>
-                             <p className="text-sm text-gray-500 line-clamp-2">{ex.type === 'link' ? ex.url : 'HTML Content'}</p>
-                        </Card>
+                
+                {/* Modified to Accordion Style as requested */}
+                <div className="space-y-4">
+                    {categoryExtras.map(ex => (
+                        <div key={ex.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm transition-all hover:shadow-md">
+                             <button 
+                                onClick={() => setExpandedExtraId(expandedExtraId === ex.id ? null : ex.id)}
+                                className="w-full flex items-center justify-between p-6 text-left hover:bg-gray-50 transition-colors"
+                             >
+                                 <div className="flex items-center gap-4">
+                                     <div className={`p-2 rounded-lg ${ex.type === 'link' ? 'bg-blue-100 text-blue-600' : 'bg-purple-100 text-purple-600'}`}>
+                                         {ex.type === 'link' ? <LinkIcon size={20}/> : <FileText size={20}/>}
+                                     </div>
+                                     <h3 className={`text-lg font-bold ${expandedExtraId === ex.id ? 'text-blue-700' : 'text-gray-800'}`}>{ex.title}</h3>
+                                 </div>
+                                 {expandedExtraId === ex.id ? <ChevronUp size={20} className="text-blue-500"/> : <ChevronDown size={20} className="text-gray-400"/>}
+                             </button>
+                             
+                             {expandedExtraId === ex.id && (
+                                 <div className="p-8 border-t border-gray-100 bg-gray-50/50">
+                                     {ex.type === 'link' ? (
+                                         <div className="text-center">
+                                             <p className="mb-4 text-gray-600">Konten ini tersedia melalui tautan berikut:</p>
+                                             <a href={ex.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors shadow-lg"><ExternalLink size={18}/> Buka Tautan</a>
+                                         </div>
+                                     ) : (
+                                         <RichHtmlContent content={ex.content || ''} />
+                                     )}
+                                 </div>
+                             )}
+                        </div>
                     ))}
-                    {extras.filter(e => e.category === selectedCategory).length === 0 && (
-                        <div className="col-span-full text-center py-10 text-gray-500 italic">Belum ada konten di kategori ini.</div>
+                    {categoryExtras.length === 0 && (
+                        <div className="col-span-full text-center py-12 text-gray-400 italic bg-white rounded-2xl border border-dashed border-gray-200">
+                            Belum ada konten di kategori ini.
+                        </div>
                     )}
                 </div>
             </motion.div>

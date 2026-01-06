@@ -1,5 +1,14 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  collection, 
+  getDocs, 
+  deleteDoc,
+  initializeFirestore
+} from 'firebase/firestore';
 
 // ==========================================
 // KONFIGURASI FIREBASE
@@ -25,11 +34,14 @@ try {
   if (firebaseConfig.apiKey !== "ISI_API_KEY_DARI_FIREBASE") {
       app = initializeApp(firebaseConfig);
       
-      // Menggunakan Firestore Standard (Online First)
-      // Menghapus enableIndexedDbPersistence untuk menghindari masalah cache data yang tidak sinkron
-      db = getFirestore(app);
+      // PERBAIKAN: Menggunakan initializeFirestore dengan experimentalForceLongPolling: true
+      // Ini mengatasi error "Could not reach Cloud Firestore backend" (code=unavailable)
+      // yang sering terjadi di jaringan tertentu atau lingkungan pengembangan yang memblokir WebSocket.
+      db = initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+      });
 
-      console.log("Firebase initialized successfully (Online Mode Active)");
+      console.log("Firebase initialized successfully (Online Mode Active with Long Polling)");
   } else {
       console.warn("Firebase Config belum diisi dengan benar.");
       db = null;
