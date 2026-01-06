@@ -54,7 +54,9 @@ import {
   CloudSun,
   Compass,
   Star,
-  LogIn
+  LogIn,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 
 // Import Firebase
@@ -277,6 +279,8 @@ const RichHtmlContent: React.FC<{ content: string; className?: string; iframeHei
 
 const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: Chapter) => void }> = ({ chapter, onSave }) => {
     const [formData, setFormData] = useState<Chapter>(chapter);
+    const [previewId, setPreviewId] = useState<string | null>(null);
+
     useEffect(() => { setFormData(chapter); }, [chapter]);
     const handleSave = () => { onSave(formData); alert('Perubahan materi bab berhasil disimpan!'); };
     const addContent = () => {
@@ -316,6 +320,8 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
           <h2 className="text-xl font-bold">Edit Materi: {formData.title}</h2>
           <Button onClick={handleSave} className="py-2 px-4 text-sm"><Save size={16}/> Simpan Semua</Button>
         </div>
+        
+        {/* Konten Materi */}
         <div className="space-y-4">
           <Input label="Judul Bab" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
           <TextArea label="Deskripsi Singkat" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
@@ -340,11 +346,27 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
               </div>
               {section.type === 'link' ? 
                 <Input placeholder="URL Tautan" value={section.url || ''} onChange={e => updateContent(section.id, { url: e.target.value })} /> : 
-                <TextArea placeholder="Source Code HTML" value={section.content || ''} onChange={e => updateContent(section.id, { content: e.target.value })} className="font-mono text-sm" />
+                <>
+                    <TextArea placeholder="Source Code HTML" value={section.content || ''} onChange={e => updateContent(section.id, { content: e.target.value })} className="font-mono text-sm" />
+                    {section.content && (
+                        <div className="mt-2">
+                            <button onClick={() => setPreviewId(previewId === section.id ? null : section.id)} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700">
+                                {previewId === section.id ? <EyeOff size={14}/> : <Eye size={14}/>} {previewId === section.id ? 'Tutup Preview' : 'Lihat Preview'}
+                            </button>
+                            {previewId === section.id && (
+                                <div className="mt-2 p-2 border border-blue-200 rounded-lg bg-white">
+                                    <RichHtmlContent content={section.content} />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </>
               }
             </div>
           ))}
         </div>
+
+        {/* Video */}
         <div className="space-y-4">
           <div className="flex justify-between items-center border-t pt-4">
             <h3 className="font-bold flex items-center gap-2"><Youtube size={18} /> Video Pembelajaran</h3>
@@ -373,6 +395,8 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
             </div>
           ))}
         </div>
+
+        {/* Kuis */}
         <div className="space-y-4">
           <div className="flex justify-between items-center border-t pt-4">
             <h3 className="font-bold flex items-center gap-2"><Gamepad size={18} /> Kuis Interaktif</h3>
@@ -394,7 +418,27 @@ const AdminContentEditor: React.FC<{ chapter: Chapter; onSave: (updatedChapter: 
                   </div>
               </div>
               {q.type === 'html' ? (
-                  <TextArea label="Kode Embed HTML" value={q.content || ''} onChange={e => updateQuiz(q.id, { content: e.target.value })} className="font-mono text-xs h-24" placeholder="<iframe...>" />
+                  <>
+                    <TextArea label="Kode Embed HTML" value={q.content || ''} onChange={e => updateQuiz(q.id, { content: e.target.value })} className="font-mono text-xs h-24" placeholder="<iframe...>" />
+                    {q.content && (
+                        <div className="mt-2">
+                            <button onClick={() => setPreviewId(previewId === q.id ? null : q.id)} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                {previewId === q.id ? <EyeOff size={14}/> : <Eye size={14}/>} {previewId === q.id ? 'Tutup Preview' : 'Lihat Preview Full'}
+                            </button>
+                            {previewId === q.id && (
+                                <div className="fixed inset-0 z-[100] bg-white p-6 overflow-auto">
+                                    <div className="max-w-7xl mx-auto">
+                                        <div className="flex justify-between items-center mb-4 border-b pb-4">
+                                            <h3 className="text-xl font-bold">Preview: {q.title}</h3>
+                                            <button onClick={() => setPreviewId(null)} className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-bold hover:bg-gray-200">Tutup</button>
+                                        </div>
+                                        <RichHtmlContent content={q.content} iframeHeight="h-[85vh]"/>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                  </>
               ) : (
                   <Input label="URL Kuis" value={q.url || ''} onChange={e => updateQuiz(q.id, { url: e.target.value })} placeholder="https://forms.gle/..." />
               )}
@@ -488,6 +532,7 @@ const AdminDashboardView: React.FC<{
   const [selChapId, setSelChapId] = useState<string>('7-ganjil-1');
   const [chapForm, setChapForm] = useState<Chapter | null>(null);
   const [resourceEdit, setResourceEdit] = useState<{ type: 'globalSchedule' | 'globalGrades' | 'exam', item: ResourceItem, semesterId?: 'ganjil'|'genap' } | null>(null);
+  const [showResourcePreview, setShowResourcePreview] = useState(false);
 
   useEffect(() => {
      const templateClass = classes.find(c => c.gradeLevel === selGrade);
@@ -520,6 +565,7 @@ const AdminDashboardView: React.FC<{
         onUpdateClassResourceByGrade(selGrade, 'exam', item, semesterId);
     }
     setResourceEdit(null);
+    setShowResourcePreview(false);
     alert('Tersimpan!');
   };
 
@@ -801,7 +847,27 @@ const AdminDashboardView: React.FC<{
                                           <Input label="Judul" value={resourceEdit.item.title} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, title: e.target.value}})} className="mb-0"/>
                                           {resourceEdit.item.type === 'link' ? 
                                               <Input label="URL" value={resourceEdit.item.url || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, url: e.target.value}})} placeholder="https://..." className="mb-0"/> : 
-                                              <TextArea label="HTML Content" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="font-mono text-xs h-40"/>
+                                              <>
+                                                <TextArea label="HTML Content" value={resourceEdit.item.content || ''} onChange={e => setResourceEdit({...resourceEdit, item: {...resourceEdit.item, content: e.target.value}})} className="font-mono text-xs h-40"/>
+                                                {resourceEdit.item.content && (
+                                                    <div className="mt-2">
+                                                        <button onClick={() => setShowResourcePreview(!showResourcePreview)} className="flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                                                            {showResourcePreview ? <EyeOff size={14}/> : <Eye size={14}/>} {showResourcePreview ? 'Tutup Preview' : 'Lihat Preview Full'}
+                                                        </button>
+                                                        {showResourcePreview && (
+                                                            <div className="fixed inset-0 z-[100] bg-white p-6 overflow-auto">
+                                                                <div className="max-w-7xl mx-auto">
+                                                                    <div className="flex justify-between items-center mb-4 border-b pb-4">
+                                                                        <h3 className="text-xl font-bold">Preview: {resourceEdit.item.title}</h3>
+                                                                        <button onClick={() => setShowResourcePreview(false)} className="px-4 py-2 bg-gray-100 rounded-lg text-sm font-bold hover:bg-gray-200">Tutup</button>
+                                                                    </div>
+                                                                    <RichHtmlContent content={resourceEdit.item.content || ''} iframeHeight="h-[85vh]"/>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                              </>
                                           }
                                       </div>
                                   </div>
@@ -1264,12 +1330,50 @@ const App: React.FC = () => {
     const fetchData = async () => {
       try {
         if (!db) return; 
+
+        // 1. Fetch Profile
         const profileDoc = await getDoc(doc(db, 'settings', 'schoolProfile'));
         if (profileDoc.exists()) {
              setProfile(profileDoc.data() as SchoolProfile);
         }
+
+        // 2. Fetch Classes (CRITICAL FOR ONLINE DATA)
+        const classesSnap = await getDocs(collection(db, 'classes'));
+        if (!classesSnap.empty) {
+            const loadedClasses: ClassData[] = [];
+            classesSnap.forEach(doc => loadedClasses.push(doc.data() as ClassData));
+            setClasses(loadedClasses);
+            console.log("Classes loaded from Firebase:", loadedClasses.length);
+        } else {
+            // First time online: Upload default classes to Firestore
+            console.log("Classes collection empty. Uploading defaults...");
+            const batch = writeBatch(db);
+            CLASSES_DATA.forEach(c => {
+                const ref = doc(db, 'classes', c.id);
+                batch.set(ref, c);
+            });
+            await batch.commit();
+            console.log("Default classes uploaded.");
+        }
+
+        // 3. Fetch Students
+        const studentsSnap = await getDocs(collection(db, 'students'));
+        if (!studentsSnap.empty) {
+            const loadedStudents: Student[] = [];
+            studentsSnap.forEach(doc => loadedStudents.push(doc.data() as Student));
+            setStudents(loadedStudents);
+        }
+
+        // 4. Fetch Extras
+        const extrasSnap = await getDocs(collection(db, 'extras'));
+        if (!extrasSnap.empty) {
+            const loadedExtras: ExtraContent[] = [];
+            extrasSnap.forEach(doc => loadedExtras.push(doc.data() as ExtraContent));
+            setExtras(loadedExtras);
+        }
+
       } catch (e) {
-        console.warn("Using offline data");
+        console.warn("Using offline data", e);
       }
     };
     fetchData();
@@ -1414,8 +1518,8 @@ const App: React.FC = () => {
           );
       }
 
-      if (view === ViewState.ADMIN_LOGIN) return (/* ... same ... */ <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center h-full"><div className="w-full max-w-md"><SectionTitle title="Login Guru" center /><Card className="p-8 space-y-4"><Input label="Username" placeholder="Username" /><Input label="Password" type="password" placeholder="Password" /><div className="flex gap-3 pt-4"><Button variant="secondary" className="flex-1" onClick={() => setView(ViewState.LANDING)}>Batal</Button><Button className="flex-1" onClick={() => setView(ViewState.ADMIN_DASHBOARD)}>Masuk</Button></div></Card></div></motion.div>);
-      if (view === ViewState.ADMIN_DASHBOARD) return (/* ... same ... */ <AdminDashboardView classes={classes} schoolProfile={profile} students={students} extras={extras} onUpdateChapterByGrade={handleUpdateChapter} onUpdateClassResourceByGrade={handleUpdateResource} onUpdateClass={handleUpdateClass} onUpdateProfile={handleUpdateProfile} onSaveStudent={handleSaveStudent} onDeleteStudent={handleDeleteStudent} onSaveExtra={handleSaveExtra} onDeleteExtra={handleDeleteExtra} onDeleteClassResource={handleDeleteClassResource} onLogout={() => setView(ViewState.LANDING)} />);
+      if (view === ViewState.ADMIN_LOGIN) return (<motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center justify-center h-full"><div className="w-full max-w-md"><SectionTitle title="Login Guru" center /><Card className="p-8 space-y-4"><Input label="Username" placeholder="Username" /><Input label="Password" type="password" placeholder="Password" /><div className="flex gap-3 pt-4"><Button variant="secondary" className="flex-1" onClick={() => setView(ViewState.LANDING)}>Batal</Button><Button className="flex-1" onClick={() => setView(ViewState.ADMIN_DASHBOARD)}>Masuk</Button></div></Card></div></motion.div>);
+      if (view === ViewState.ADMIN_DASHBOARD) return (<AdminDashboardView classes={classes} schoolProfile={profile} students={students} extras={extras} onUpdateChapterByGrade={handleUpdateChapter} onUpdateClassResourceByGrade={handleUpdateResource} onUpdateClass={handleUpdateClass} onUpdateProfile={handleUpdateProfile} onSaveStudent={handleSaveStudent} onDeleteStudent={handleDeleteStudent} onSaveExtra={handleSaveExtra} onDeleteExtra={handleDeleteExtra} onDeleteClassResource={handleDeleteClassResource} onLogout={() => setView(ViewState.LANDING)} />);
       if (view === ViewState.STUDENT_LOGIN) return (<StudentLoginView initialClassId={selectedClassId} classes={classes} students={students} onLoginSuccess={(s, cId) => { setCurrentUser(s); setSelectedClassId(cId); setView(ViewState.CLASS_DETAIL); }} onBack={() => setView(ViewState.LANDING)} />);
       if (view === ViewState.CLASS_DETAIL) { const cls = classes.find(c => c.id === selectedClassId); return cls ? (<ClassDetailView classData={cls} student={currentUser} onBack={() => { setCurrentUser(null); setView(ViewState.STUDENT_LOGIN); }} onSelectChapter={(id) => { setSelectedChapterId(id); setView(ViewState.CHAPTER_CONTENT); }} />) : <div>Loading...</div>; }
       if (view === ViewState.CHAPTER_CONTENT) { const cls = classes.find(c => c.id === selectedClassId); let chapter = null; cls?.semesters.forEach(s => s.chapters.forEach(c => { if (c.id === selectedChapterId) chapter = c; })); return chapter ? (<ChapterContentView chapter={chapter} onBack={() => setView(ViewState.CLASS_DETAIL)} />) : <div>Loading...</div>; }
